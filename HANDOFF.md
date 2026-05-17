@@ -217,12 +217,26 @@ Risk: Historical divergence detected
 
 第一屏应像“已经在运转的危机指挥室”，而不是功能菜单。
 
+## 第 17 轮确认
+用户纠偏：比起呈现哪些具体信息，更应该关注信息呈现方式。
+
+第一屏不是把 Intel Desk、Timeline、Map、Archives、Risk Panel 的信息全部摊开，而是要设计一种渐进式、任务驱动、拟态内嵌的信息呈现。
+
+核心原则：
+- 先给身份和压力，不先给全量系统。
+- 信息以任务流呈现，而不是资料库呈现。
+- 四个模块不同时抢注意力，Intel Desk 是主焦点，其他模块被情报点亮。
+- 用值班规程、上级批注、系统审计提醒、来源可信度警告代替教程弹窗。
+- 用矛盾标记驱动玩家：Baseline History vs Current Timeline、Official Report vs Unverified Source、Archive Present vs Archive Missing。
+
+第一屏目标：不是“给玩家很多信息”，而是“让玩家看到一个正在崩开的历史矛盾”。
+
 ## 下次继续
 优先讨论：
 
-> 第 17 轮：围绕“1933 年爱因斯坦没有离开德国”，第一屏危机指挥室应该显示哪些具体信息？
+> 第 18 轮：第一屏信息呈现应采用哪种视觉/交互范式？
 
-候选：Intel Desk 情报、Timeline 压力节点、Map 关键地点、Archives 证据、Risk Panel 风险。
+候选：危机指挥室式、桌面 OS 式、情报工作台式、档案审计式。
 - 军事参谋
 
 ## 重要约束
