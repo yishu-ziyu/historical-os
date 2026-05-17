@@ -240,12 +240,21 @@ Risk: Historical divergence detected
 
 OS 式元素：顶部状态栏、系统时间、世界线状态、多窗口/可展开面板、未读通知、文件夹/档案夹隐喻、系统审计提醒。
 
+## 第 19 轮确认
+第一屏采用“默认情报工作台布局 + OS 式自由拖拽窗口”。
+
+默认布局基本成立：
+- Intel Desk 居中最大。
+- Timeline 左侧。
+- Map 右侧。
+- Archives / Source Credibility / Risk 底部或附属面板。
+
+但用户希望窗口可以自由拖拽、调整、展开、最小化。也就是：系统默认排好危机工作台，但用户可以像操作 OS 一样重排窗口。
+
+新增需求：更上层 `黑客松` 文件夹里有游戏开发相关项目和游戏引擎，现在可以尝试跑简单 Demo，需要给引擎侧一个具体 prompt 来对接。
+
 ## 下次继续
-优先讨论：
-
-> 第 19 轮：情报工作台第一屏的布局应该如何安排？
-
-需要确定：Intel Desk 是否居中最大；Timeline 放左/上/底；Map 是小窗还是半屏；Archives 是列表/卡片/档案夹；Risk/Source Credibility 是独立面板还是附在 Intel Desk 上。
+优先：生成一个给游戏引擎侧的 Demo Prompt，内容包括顶部 OS 状态栏、可拖拽窗口、Intel Desk、Timeline、Map、Archives、Risk、爱因斯坦第一案、五个动作与弱推荐。
 - 军事参谋
 
 ## 重要约束
