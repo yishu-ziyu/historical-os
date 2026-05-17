@@ -204,12 +204,25 @@ Risk: Historical divergence detected
 
 新增原则：后续游戏/玩法设计要引入开发社区、玩家社区和类似案例研究，不只依赖内部直觉。
 
+## 第 16 轮确认
+已启动 Agent team 并完成第一批外部调研。有效产物：
+
+- `agents/os_interface_case_research_2026-05-18.md`
+- `agents/historical_situation_decision_research_2026-05-18.md`
+- `agents/einstein_1933_historical_anchor_2026-05-18.md`
+
+证据调查玩法 Agent 因 socket connection closed 失败，后续需要重跑。
+
+核心判断：优先研究历史态势决策型，但不能做成政策 Excel 或硬核国家模拟器。更准确表述：玩家不是在优化国家指标，而是在危机指挥室里处理一个会撬动历史大势的异常事件。
+
+第一屏应像“已经在运转的危机指挥室”，而不是功能菜单。
+
 ## 下次继续
 优先讨论：
 
-> 第 16 轮：外部调研应优先查哪一类？
+> 第 17 轮：围绕“1933 年爱因斯坦没有离开德国”，第一屏危机指挥室应该显示哪些具体信息？
 
-候选：类似游戏案例、玩家社区偏好、开发者设计方法、OS-like / 桌面式游戏界面案例。
+候选：Intel Desk 情报、Timeline 压力节点、Map 关键地点、Archives 证据、Risk Panel 风险。
 - 军事参谋
 
 ## 重要约束
