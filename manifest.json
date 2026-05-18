@@ -1,7 +1,7 @@
 {
   "project": "架空历史故事游戏",
   "root": "/Users/mahaoxuan/Desktop/黑客松/架空历史故事游戏",
-  "status": "product_discovery_round_19_completed",
+  "status": "godot_demo_v0_1_exported",
   "created_at": "2026-05-17",
   "protocol": "Agent记忆外化与跨Session状态继承",
   "entrypoints": {
@@ -9,7 +9,11 @@
     "handoff": "HANDOFF.md",
     "logs": "logs/",
     "agents": "agents/",
-    "artifacts": "artifacts/"
+    "artifacts": "artifacts/",
+    "godot_demo": "artifacts/godot_demo/",
+    "godot_demo_web": "artifacts/godot_demo_web/index.html",
+    "godot_demo_prompt": "artifacts/godot_demo_prompt_v0.1.md",
+    "interaction_planning_board": "artifacts/interaction_planning_board.html"
   },
   "confirmed_direction": {
     "world_evolution": "automatic_by_default",
@@ -21,6 +25,15 @@
     "secondary": "god_view_variable_editing",
     "primary": "historical_actor_with_limited_identity_information_and_resources"
   },
-  "next_round": "第3轮：玩家作为历史中的具体行动者时，最有魅力的身份是什么？"
+  "latest_demo": {
+    "name": "Historical OS Godot Demo v0.1",
+    "preview_url": "http://127.0.0.1:8890/index.html",
+    "screenshots": [
+      "artifacts/historical-os-demo-v0.1.png",
+      "artifacts/historical-os-demo-v0.1-click-test.png",
+      "artifacts/historical-os-demo-v0.1-drag-test.png"
+    ],
+    "known_gap": "Manual window drag needs user-side confirmation; synthetic Chrome DevTools drag did not visibly prove movement."
+  },
+  "next_round": "第22轮：基于交互规划板，比较值班台式与案情板式哪一个更适合作为第一分钟画面。"
 }
-

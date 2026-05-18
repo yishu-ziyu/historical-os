@@ -1,0 +1,59 @@
+{
+  "top_bar": {
+    "product": "HISTORICAL OS",
+    "case": "EINSTEIN-1933-A",
+    "system_date": "1933-03-27",
+    "baseline_drift": "HIGH",
+    "unread": 1
+  },
+  "intel": {
+    "title": "Intel Desk / Urgent Dispatch",
+    "classification": "URGENT / BERLIN SOURCE B-17",
+    "lines": [
+      "Subject: Albert Einstein",
+      "Status: Still in Germany",
+      "Location Confidence: 0.72",
+      "Risk: Historical divergence detected"
+    ],
+    "message": "Subject E remains within German territory.\nExpected departure window has closed.\nUnknown party may have intervened.",
+    "system_note": "In the baseline history, Albert Einstein did not return to Germany after Hitler's rise in 1933.\nCurrent timeline indicators suggest he remains near Berlin / Caputh.\n\nPlease determine whether this is source error, archive inconsistency, deliberate misinformation, or timeline divergence.",
+    "suggestion": "Before taking direct action, verify both source credibility and baseline records."
+  },
+  "timeline": [
+    "1933-01-30  Hitler appointed Chancellor",
+    "1933-03-XX  Einstein expected not to return to Germany",
+    "1933-03-27  [ANOMALY] Subject E still traced near Berlin",
+    "1933-04-07  Law for the Restoration of the Professional Civil Service",
+    "1933-10-XX  Baseline: Einstein joins Princeton IAS"
+  ],
+  "map": [
+    "Berlin",
+    "Caputh",
+    "Antwerp",
+    "De Haan",
+    "Princeton"
+  ],
+  "archives": [
+    {"name": "Prussian Academy resignation record", "status": "baseline only"},
+    {"name": "Caputh property search report", "status": "current timeline conflict"},
+    {"name": "Passport / border crossing record", "status": "missing"},
+    {"name": "Newspaper clipping: anti-Einstein campaign", "status": "unverified"},
+    {"name": "Institute for Advanced Study correspondence", "status": "baseline only"}
+  ],
+  "risk": [
+    "Source B-17 Reliability: Medium",
+    "Signal Integrity: Unknown",
+    "Propaganda Risk: High",
+    "Police Surveillance Risk: High",
+    "International Rescue Network: Disrupted",
+    "Ethical Sensitivity: Severe"
+  ],
+  "historical_notice": "Historical sensitivity notice:\nThis case involves antisemitic persecution, state violence, exile, and academic purges. Treat all interventions as high-risk.",
+  "feedback": {
+    "timeline": "Timeline focus: March-April 1933 divergence window highlighted.",
+    "map": "Map trace: Berlin / Caputh unresolved corridor marked for review.",
+    "archives": "Archives query: baseline records and missing border evidence queued.",
+    "source": "Source B-17 verification: reliability medium, propaganda risk high.",
+    "directive": "Field directive draft opened. Intervention remains locked pending source review."
+  }
+}

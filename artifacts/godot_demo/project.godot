@@ -1,0 +1,16 @@
+config_version=5
+
+[application]
+config/name="Historical OS Demo"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.6", "Forward Plus")
+
+[display]
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

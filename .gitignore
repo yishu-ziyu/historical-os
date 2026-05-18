@@ -1,0 +1,8 @@
+# Godot generated editor/import cache
+artifacts/godot_demo/.godot/
+
+# Generated Web export; rebuild from artifacts/godot_demo when needed.
+artifacts/godot_demo_web/
+
+# macOS metadata
+.DS_Store

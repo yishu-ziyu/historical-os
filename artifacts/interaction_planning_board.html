@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Historical OS Interaction Planning Board</title>
+  <style>
+    :root {
+      --bg: #0f1114;
+      --panel: #171b20;
+      --panel-2: #1f252b;
+      --border: #303942;
+      --text: #ede4d1;
+      --muted: #a79f91;
+      --amber: #d5a64c;
+      --green: #7faa74;
+      --red: #b96363;
+      --blue: #7d9bc2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.55;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 14px 18px;
+      background: rgba(15,17,20,0.94);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+    header h1 { margin: 0; font-size: 18px; }
+    header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    main {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      padding: 14px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+    }
+    h2 { margin: 0 0 10px; font-size: 16px; color: var(--amber); }
+    h3 { margin: 14px 0 8px; font-size: 14px; color: var(--blue); }
+    .card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin: 10px 0;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 8px;
+      margin: 2px 4px 2px 0;
+      color: var(--muted);
+      font-size: 12px;
+      background: #12161a;
+    }
+    .tag.green { color: var(--green); border-color: rgba(127,170,116,0.45); }
+    .tag.amber { color: var(--amber); border-color: rgba(213,166,76,0.5); }
+    .tag.red { color: var(--red); border-color: rgba(185,99,99,0.5); }
+    pre {
+      white-space: pre-wrap;
+      background: #0b0d10;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      color: #d9d0bd;
+      overflow: auto;
+    }
+    ul, ol { padding-left: 20px; }
+    li { margin: 6px 0; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .full { grid-column: 1 / -1; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    button {
+      background: #141920;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--amber); }
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0b0d10;
+      color: var(--text);
+      padding: 10px;
+      font: inherit;
+    }
+    .muted { color: var(--muted); }
+    .big { font-size: 22px; font-weight: 700; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Historical OS · Superpower-style 交互规划板</h1>
+    <p>目标：把抽象讨论降到“玩家第一眼看到什么 / 想点哪里 / 为什么继续”。</p>
+  </header>
+  <main>
+    <section>
+      <h2>当前共识</h2>
+      <div class="card">
+        <div class="big">第一案：1933 年，爱因斯坦没有离开德国</div>
+        <p class="muted">不是传统 Galgame，不是单一调查游戏，而是架空历史模拟 OS。</p>
+        <span class="tag amber">情报工作台为主</span>
+        <span class="tag green">OS 可拖拽窗口</span>
+        <span class="tag red">历史严肃性</span>
+      </div>
+      <h3>玩家第一分钟</h3>
+      <pre>HISTORICAL OS
+值班时间：1933-03-27 02:14
+状态：历史基准偏移 / 高风险
+
+[未读情报]
+柏林线人 B-17：
+“爱因斯坦仍在德国。”
+
+系统备注：
+在正常历史中，他此时不应回到德国。
+但地图记录显示，他的最后活动地点仍在柏林附近。</pre>
+      <h3>五个按钮</h3>
+      <div class="button-row">
+        <button onclick="setFocus('看时间线：确认 1933 年 3-4 月哪个节点偏了。')">看时间线</button>
+        <button onclick="setFocus('看地图：比较基准路线和当前柏林/Caputh 轨迹。')">看地图</button>
+        <button onclick="setFocus('查档案：找离境记录、科学院记录、住所搜查报道。')">查档案</button>
+        <button onclick="setFocus('查线人：判断 B-17 是可靠线人、误报，还是被操纵。')">查线人</button>
+        <button onclick="setFocus('下指令：进入二级确认，不立刻改变历史。')">下指令</button>
+      </div>
+      <div class="card" id="focusBox">点击上面的按钮，查看我们要设计的玩家反馈。</div>
+    </section>
+
+    <section>
+      <h2>我们每轮只回答 3 个问题</h2>
+      <ol>
+        <li><strong>看见什么？</strong> 屏幕上具体有什么字、图、按钮？</li>
+        <li><strong>想点哪里？</strong> 玩家下一步自然想做什么？</li>
+        <li><strong>感觉如何？</strong> 紧张、好奇、困惑、像工作、想退出？</li>
+      </ol>
+      <div class="card">
+        <h3>禁用说法</h3>
+        <span class="tag red">历史态势决策闭环</span>
+        <span class="tag red">多模态信息架构</span>
+        <span class="tag red">系统性叙事容器</span>
+        <p class="muted">这些可以留给文档，不作为我们对话的主语言。</p>
+      </div>
+      <div class="card">
+        <h3>推荐说法</h3>
+        <span class="tag green">玩家第一眼</span>
+        <span class="tag green">这句话想不想点？</span>
+        <span class="tag green">按钮点下去发生什么？</span>
+        <span class="tag green">像哪部作品的哪一幕？</span>
+      </div>
+    </section>
+
+    <section class="full">
+      <h2>下一轮讨论草稿区</h2>
+      <div class="grid2">
+        <div>
+          <h3>方案 A：像值班台</h3>
+          <pre>[未读情报]
+爱因斯坦仍在德国。
+
+建议：先确认情报来源。
+
+按钮：看时间线 / 查线人 / 下指令</pre>
+        </div>
+        <div>
+          <h3>方案 B：像案情板</h3>
+          <pre>中心照片：Albert Einstein
+红线连接：柏林、Caputh、普林斯顿
+
+缺失证据：离境记录
+异常证据：柏林活动轨迹</pre>
+        </div>
+      </div>
+      <h3>你的即时反馈</h3>
+      <textarea placeholder="在这里写：我更想点 A / B，或者哪里看不懂、哪里有感觉。这个文本不会自动保存，只作为讨论板。"></textarea>
+    </section>
+  </main>
+  <script>
+    function setFocus(text) {
+      document.getElementById('focusBox').textContent = text;
+    }
+  </script>
+</body>
+</html>
