@@ -1,4 +1,5 @@
 const seed = {
+  id: "node-0",
   title: "爱因斯坦仍在德国",
   story: "柏林的夜雨敲在窗上。系统推送了一条异常：爱因斯坦没有离开德国。\n\n这不是一条普通传闻。真实历史里，他本该避开纳粹德国；但当前世界线里，最后的目击记录仍停在柏林附近。\n\n现在，你要决定这条历史裂缝往哪里生长。",
   choices: [
@@ -6,7 +7,9 @@ const seed = {
     { title: "爱因斯坦被纳粹杀害", hint: "国家暴力变成了世界线的第一块多米诺骨牌。" },
     { title: "爱因斯坦被迫进入德国研究机构", hint: "合作、拖延、欺骗，还是暗中破坏？" },
     { title: "爱因斯坦通过秘密渠道逃离", hint: "逃亡路线会牵动哪些人和国家？" }
-  ]
+  ],
+  parentId: null,
+  childIds: []
 };
 
 const fragments = [
@@ -25,7 +28,8 @@ const followUps = [
   ["跟进爱因斯坦本人", "看他如何在恐惧、责任与求生之间选择。"]
 ];
 
-let history = [seed];
+let nextNodeId = 1;
+let nodes = [seed];
 let current = seed;
 
 const storyText = document.getElementById("storyText");
@@ -39,20 +43,28 @@ function pick(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-function generateNode(direction) {
-  const existingTitles = new Set(history.map(node => node.title));
-  existingTitles.add(direction);
+function generateNode(direction, parent) {
+  const siblingTitles = new Set(
+    parent.childIds
+      .map(childId => nodes.find(node => node.id === childId))
+      .filter(Boolean)
+      .map(node => node.title)
+  );
+  siblingTitles.add(direction);
 
   const nextChoices = [...followUps]
-    .filter(([title]) => !existingTitles.has(title))
+    .filter(([title]) => !siblingTitles.has(title))
     .sort(() => Math.random() - 0.5)
     .slice(0, 3)
     .map(([title, hint]) => ({ title, hint }));
 
   return {
+    id: `node-${nextNodeId++}`,
     title: direction,
     story: `你选择了：${direction}\n\n${expand(direction)}\n\n${pick(fragments)}\n\n故事没有结束。它分裂成了新的几条线。`,
-    choices: nextChoices
+    choices: nextChoices,
+    parentId: parent.id,
+    childIds: []
   };
 }
 
@@ -72,6 +84,17 @@ function expand(direction) {
   return `这个想法改变了故事的方向：${direction}。系统把它识别为一个新的历史分叉，并开始寻找它会影响的人、地点和后果。`;
 }
 
+function getDepth(node) {
+  let depth = 0;
+  let cursor = node;
+  while (cursor.parentId) {
+    depth += 1;
+    cursor = nodes.find(item => item.id === cursor.parentId);
+    if (!cursor) break;
+  }
+  return depth;
+}
+
 function render() {
   storyText.textContent = current.story;
   choices.innerHTML = "";
@@ -84,36 +107,40 @@ function render() {
   });
 
   nodeList.innerHTML = "";
-  history.forEach((node, index) => {
+  nodes.forEach((node, index) => {
     const item = document.createElement("button");
     item.className = `node ${node === current ? "current" : ""}`;
+    item.style.marginLeft = `${getDepth(node) * 18}px`;
     item.textContent = `${index + 1}. ${node.title}`;
-    item.onclick = () => jumpTo(index);
+    item.onclick = () => jumpTo(node.id);
     nodeList.appendChild(item);
   });
 
-  backBtn.disabled = history.length <= 1;
+  backBtn.disabled = !current.parentId;
 }
 
 function move(direction) {
-  current = generateNode(direction);
-  history.push(current);
+  const newNode = generateNode(direction, current);
+  nodes = [...nodes, newNode];
+  current.childIds = [...current.childIds, newNode.id];
+  current = newNode;
   customInput.value = "";
   render();
 }
 
-function jumpTo(index) {
-  current = history[index];
-  history = history.slice(0, index + 1);
+function jumpTo(nodeId) {
+  const target = nodes.find(node => node.id === nodeId);
+  if (!target) return;
+  current = target;
   render();
 }
 
 backBtn.onclick = () => {
-  if (history.length > 1) {
-    history.pop();
-    current = history[history.length - 1];
-    render();
-  }
+  if (!current.parentId) return;
+  const parent = nodes.find(node => node.id === current.parentId);
+  if (!parent) return;
+  current = parent;
+  render();
 };
 
 customBtn.onclick = () => {

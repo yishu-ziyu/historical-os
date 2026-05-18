@@ -80,14 +80,18 @@ textarea {
 }
 .choice small { display: block; color: var(--muted); margin-top: 5px; }
 .network { margin-top: 18px; }
-.node-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.node-list { display: grid; gap: 8px; align-items: start; }
 .node {
+  width: fit-content;
+  text-align: left;
   border: 1px solid var(--line);
   background: #15130f;
   color: var(--muted);
   border-radius: 999px;
   padding: 8px 12px;
 }
+.node::before { content: "↳ "; color: var(--line); }
+.node:first-child::before { content: "◎ "; color: var(--gold); }
 .node:hover { border-color: var(--gold); color: var(--gold); }
 .node.current { color: var(--gold); border-color: var(--gold); cursor: default; }
 @media (max-width: 880px) {
