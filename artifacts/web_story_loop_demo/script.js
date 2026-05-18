@@ -40,7 +40,11 @@ function pick(items) {
 }
 
 function generateNode(direction) {
+  const existingTitles = new Set(history.map(node => node.title));
+  existingTitles.add(direction);
+
   const nextChoices = [...followUps]
+    .filter(([title]) => !existingTitles.has(title))
     .sort(() => Math.random() - 0.5)
     .slice(0, 3)
     .map(([title, hint]) => ({ title, hint }));
@@ -81,9 +85,10 @@ function render() {
 
   nodeList.innerHTML = "";
   history.forEach((node, index) => {
-    const item = document.createElement("div");
+    const item = document.createElement("button");
     item.className = `node ${node === current ? "current" : ""}`;
     item.textContent = `${index + 1}. ${node.title}`;
+    item.onclick = () => jumpTo(index);
     nodeList.appendChild(item);
   });
 
@@ -94,6 +99,12 @@ function move(direction) {
   current = generateNode(direction);
   history.push(current);
   customInput.value = "";
+  render();
+}
+
+function jumpTo(index) {
+  current = history[index];
+  history = history.slice(0, index + 1);
   render();
 }
 

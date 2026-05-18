@@ -88,7 +88,8 @@ textarea {
   border-radius: 999px;
   padding: 8px 12px;
 }
-.node.current { color: var(--gold); border-color: var(--gold); }
+.node:hover { border-color: var(--gold); color: var(--gold); }
+.node.current { color: var(--gold); border-color: var(--gold); cursor: default; }
 @media (max-width: 880px) {
   .layout { grid-template-columns: 1fr; }
   .app { padding: 16px; }
