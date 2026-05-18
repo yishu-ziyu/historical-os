@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>网状历史故事书 Demo</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div class="eyebrow">LLM Story Loop Demo v0.1 / 模拟生成</div>
+      <h1>1933 年，爱因斯坦没有离开德国。</h1>
+      <p>
+        在真实历史中，爱因斯坦没有回到纳粹德国。
+        但这条世界线里，他仍然留在柏林附近。
+        你要决定接下来发生什么。
+      </p>
+    </section>
+
+    <section class="layout">
+      <article class="story-card">
+        <div class="card-header">
+          <span>当前故事节点</span>
+          <button id="backBtn" disabled>回到上一步</button>
+        </div>
+        <div id="storyText" class="story-text"></div>
+        <div class="input-box">
+          <label for="customInput">或者写下你的版本</label>
+          <textarea id="customInput" placeholder="例如：爱因斯坦假装合作，但暗中帮助犹太科学家逃亡。"></textarea>
+          <button id="customBtn">让故事沿这个方向生长</button>
+        </div>
+      </article>
+
+      <aside class="branch-panel">
+        <h2>你想看哪条线？</h2>
+        <div id="choices" class="choices"></div>
+      </aside>
+    </section>
+
+    <section class="network">
+      <h2>故事网</h2>
+      <div id="nodeList" class="node-list"></div>
+    </section>
+  </main>
+
+  <script src="./script.js"></script>
+</body>
+</html>

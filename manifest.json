@@ -1,7 +1,7 @@
 {
   "project": "架空历史故事游戏",
   "root": "/Users/mahaoxuan/Desktop/黑客松/架空历史故事游戏",
-  "status": "godot_demo_v0_1_exported",
+  "status": "round_23_llm_networked_history_storybook_direction",
   "created_at": "2026-05-17",
   "protocol": "Agent记忆外化与跨Session状态继承",
   "entrypoints": {
@@ -26,14 +26,19 @@
     "primary": "historical_actor_with_limited_identity_information_and_resources"
   },
   "latest_demo": {
-    "name": "Historical OS Godot Demo v0.1",
+    "name": "Historical OS Godot Demo v0.2",
     "preview_url": "http://127.0.0.1:8890/index.html",
     "screenshots": [
       "artifacts/historical-os-demo-v0.1.png",
       "artifacts/historical-os-demo-v0.1-click-test.png",
-      "artifacts/historical-os-demo-v0.1-drag-test.png"
+      "artifacts/historical-os-demo-v0.1-drag-test.png",
+      "artifacts/historical-os-demo-v0.2-zh-verified.png",
+      "artifacts/historical-os-demo-v0.2-en-toggle.png",
+      "artifacts/historical-os-demo-v0.2-action-feedback.png"
     ],
-    "known_gap": "Manual window drag needs user-side confirmation; synthetic Chrome DevTools drag did not visibly prove movement."
+    "language": "zh_default_en_toggle",
+    "known_gap": "Visual art is still UI-first and lacks real character/background assets; next art pass should use generated or supplied raster assets rather than SVG-like placeholders.",
+    "user_verified": "Manual window drag works on the user's side."
   },
-  "next_round": "第22轮：基于交互规划板，比较值班台式与案情板式哪一个更适合作为第一分钟画面。"
+  "next_round": "第24轮：定义 LLM 驱动网状历史故事书的最小可玩循环：事件弹出 → 分支/自由输入 → LLM 生成后续 → 新故事线 → 回退/继续。"
 }
