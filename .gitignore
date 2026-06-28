@@ -6,3 +6,15 @@ artifacts/godot_demo_web/
 
 # macOS metadata
 .DS_Store
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# yishuship local runtime state — keep protocol structure public,
+# but don't commit the current phase/activeTask snapshot.
+.ship/state.yaml
+.omx/

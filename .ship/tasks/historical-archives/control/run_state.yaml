@@ -1,0 +1,25 @@
+# Task-level state machine
+# 由 /loop 和 /yishuship:qa 读写；不变量：status 只能是 pending / running / done / failed
+
+taskId: historical-archives
+# Task 目录名
+
+status: done
+# pending → running（loop 启动）→ done（ALL GREEN + QA 通过）| failed（升级给用户）
+
+iteration: 0
+# loop 循环计数（0 表示从未进入 loop）
+
+stopReason: null
+# success | max_iterations | same_failure_2x | regression | no_progress_2x | capability_boundary | null（未退出）
+
+startedAt: null
+# ISO timestamp 或 null
+
+completedAt: "2026-06-28"
+# ISO timestamp 或 null
+
+notes:
+  - "回填任务：原 round 041 工作已在 TODO.md 标记完成"
+  - "无 e2e 报告：设计 spec 阶段无 QA 流程，强行补 e2e 报告会失真"
+  - "无 plan.md：spec.md 已包含实现拆解步骤，足够作为参考"
