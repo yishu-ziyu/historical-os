@@ -18,3 +18,7 @@ __pycache__/
 # but don't commit the current phase/activeTask snapshot.
 .ship/state.yaml
 .omx/
+
+# macOS system fonts — non-redistributable; non-macOS users should
+# swap to a freely-licensed CJK font in project.godot.
+artifacts/godot_walking_branch/assets/fonts/HiraginoSansGB.ttc
