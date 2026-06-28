@@ -6,6 +6,125 @@
 ## 当前阶段
 产品共创早期。目标是在开发前进行至少 80 轮讨论，把产品机制、历史资料系统、叙事形态、媒介体验和技术路线想清楚。
 
+## 2026-05-20 当前恢复入口
+
+下次继续时先读：
+
+- `TODO.md`
+- `logs/round_031_2026-05-19.md`
+- `logs/round_032_2026-05-20.md`
+- `logs/round_033_2026-05-20.md`
+- `tasks/historical_runtime_v0.3_agent_runtime_spec.md`
+
+当前有两条清晰开发线：
+
+1. Godot 线：`artifacts/godot_walking_branch/` 已是正式 Godot 项目壳，下一步在 Godot Editor 中验收移动和触发手感，再把四个地点分叉后续做成具体 UI。
+2. Runtime 线：`HistoricalRuntime v0.3` 已冻结 AgentRun / async job pipeline 规格，下一步按 BDD/TDD 实现 `POST /api/generate/start` 与 `GET /api/jobs/{jobId}`。
+
+当前不要再回到“只做网页 CSS demo”的状态。网页原型只保留为机制验证和截图记录；正式游戏实现从 Godot 项目壳推进。
+
+## 2026-05-19 Godot 正式项目壳
+
+用户确认下一步进入正式 Godot 开发，不再只在网页原型中试。
+
+已新建 Godot 项目：
+
+- Project：`artifacts/godot_walking_branch/`
+- Main scene：`artifacts/godot_walking_branch/scenes/Main.tscn`
+- Main script：`artifacts/godot_walking_branch/scripts/Main.gd`
+- Branch data：`artifacts/godot_walking_branch/data/branches.json`
+- README：`artifacts/godot_walking_branch/README.md`
+
+实现内容：
+
+- Godot 4.6.2 项目，Compatibility renderer。
+- `CharacterBody2D` 玩家，方向键移动。
+- 4 个 `Area2D` 历史分叉地点。
+- 空格触发当前地点分叉。
+- 右侧 `CanvasLayer` 档案 UI 更新标题、结果、世界线稳定度、公开风险和下一步形态。
+- 数据从 JSON 读取，避免把分叉文本写死在场景节点里。
+
+验证：
+
+- `godot --headless --path artifacts/godot_walking_branch --check-only --script res://scripts/Main.gd` 通过。
+- `godot --headless --path artifacts/godot_walking_branch --quit-after 2` 通过。
+- 第一次 headless 因沙盒阻止 Godot 写 `~/Library/Application Support/Godot` 失败；放行 `godot --headless` 后正常。
+- 字体 `.ttc` 在未导入状态下不能直接 `load()`，已移除硬依赖，先使用 Godot 默认字体/fallback。
+
+下一步：
+
+- 在 Godot Editor 中人工验收移动和触发手感。
+- 把触发后的后续 UI 做成四套具体界面：港口电报、科学院档案、风险审计、报纸舆论。
+- 生成独立角色 sprite sheet 与地点素材，不再从概念资产表裁剪玩家。
+
+## 2026-05-19 行走式历史分叉原型
+
+用户提出新想法：参考 Godot 农场/顶视角教程，不再只做 Web/CSS 面板，而是让玩家操控一个爱因斯坦样貌的小人物，在场景中走到不同地点触发历史分叉。
+
+已完成一个独立 Canvas 2D 原型：
+
+- Demo：`artifacts/walking_branch_demo/`
+- 预览：`http://127.0.0.1:8894/artifacts/walking_branch_demo/index.html`
+- 初始截图：`artifacts/walking-branch-demo-initial.png`
+- 触发截图：`artifacts/walking-branch-demo-triggered.png`
+- 生成资产表：`artifacts/walking_branch_demo/assets/berlin_asset_sheet_v1.png`
+- 美术接入截图：`artifacts/walking-branch-demo-art-v1.png`
+
+机制：
+
+- WASD / 方向键移动。
+- 走到发光地点后按空格触发分叉。
+- 当前地点包括：汉堡港撤离线、普鲁士科学院、秘密警察档案室、柏林报社。
+- 触发后右侧档案卡更新世界线稳定度、公开风险和下一步 UI 形态。
+
+判断：
+
+- 这个方向可行，但应定义为“空间化历史选择入口”，不是完整像素 RPG。
+- 走路层只负责让抽象历史分叉变得可感、可探索；后续仍应进入档案卡、报纸、电报、地图反馈和历史审计。
+- 涉及真实人物迫害/死亡的分支必须进入严肃风险审计，不做猎奇动画或奖励式演出。
+- Godot 版本建议用 `CharacterBody2D` 玩家、`Area2D` 触发区、`Control` 档案弹层、JSON 分叉数据和轻量 scene/UI transition。
+- 第一版 imagegen 资产已接入 Canvas：背景叠加柏林视觉、小人优先从资产表取帧、地点热区改为带标记的交互点。当前资产仍是整张概念表切片复用，后续应生成更规范的独立 sprite sheet、地点图标和结果插图。
+
+## 2026-05-19 视觉方向可行性纠偏
+
+本轮用子 Agent 分别探索了三种方向，并做了一个静态可视化对比 demo：
+
+- `artifacts/style_feasibility_demo/`
+- 当前预览：`http://127.0.0.1:8893/index.html`
+- 已验证截图：`artifacts/style-feasibility-archive.png`
+
+结论：
+
+- 主方向采用“档案馆式架空历史模拟游戏”：纸上地图、素描人物、报纸/电报/年鉴 UI、少量像素图标。
+- 三种方案不是平级候选。档案素描风 / 情报档案 OS 是主屏和主体验。
+- 极简像素战略地图、纸上兵棋/历史地图只能作为局部组件语言：地图标记、箭头、事件热区、状态符号、少量像素图标。
+- 不要把 MVP 做成角色在地图上跑来跑去的像素 RPG；内容压力会从历史事件和人物资料管理转移到不可控的角色动画、地图和资产量。
+- 后续如果进入 Godot，应建立具体游戏项目壳，而不是修改 Godot 引擎源码；技术路线为 Godot 4.x + 2D + Compatibility renderer + GDScript + Control UI + JSON 数据驱动。
+
+## 2026-05-19 HistoricalRuntime v0.1-v0.2 实现
+
+Web story loop demo 已升级为最小 Historical OS Agent Runtime：
+
+- `artifacts/web_story_loop_demo/server.mjs` 保留 `POST /api/generate`，返回 `story/choices/task/events/brief/artifacts/historyReview/historyFlags`。
+- 服务端新增规则型 `HistoryGuardAgent`，对纳粹德国、反犹迫害、国家暴力、真实人物死亡、高风险指令、伪真实档案编号、过早结局做标记；高风险方向会产生 `human_approval_required` 事件。
+- fallback 仍返回 200，并保留 task/events/brief/artifact/historyReview，避免前端玩法中断。
+- `index.html` / `script.js` / `style.css` 新增 Artifact 展示区和 Historical OS 审计提示，不改成聊天 UI。
+- 前端已将 Brief、事件、分支按钮、节点卡等模型文本渲染改为 DOM API / `textContent`，避免直接插入模型 HTML。
+- 新增测试：`artifacts/web_story_loop_demo/server.test.mjs`、`artifacts/web_story_loop_demo/frontend_contract.test.mjs`。
+
+验证：
+
+- `node --check artifacts/web_story_loop_demo/server.mjs`
+- `node --check artifacts/web_story_loop_demo/script.js`
+- `node --test artifacts/web_story_loop_demo/server.test.mjs artifacts/web_story_loop_demo/frontend_contract.test.mjs`
+- `PORT=8893 node server.mjs` 后用 Python 调 `/api/generate` 验证返回结构。
+- Chrome 打开 `http://127.0.0.1:8893/`，点击“爱因斯坦被纳粹杀害”：确认任务、事件流、Brief、Artifact、审计卡、故事地图新增节点和地图跳转可用。
+
+注意：
+
+- 验收时 `8892` 被占用，因此使用 `8893`。
+- 当前本机模型代理返回 400 `Instructions are required`，因此浏览器验收实际走 fallback；fallback 是本阶段明确要求覆盖的路径。
+
 ## 记录协议
 采用“Agent 记忆外化与跨 Session 状态继承”：
 - `TODO.md` 是当前状态入口。
@@ -289,13 +408,166 @@ http://127.0.0.1:8890/index.html
 - 按钮反馈已通过浏览器 canvas 点击验证。
 - 人工拖拽窗口仍需用户侧确认；Chrome DevTools 合成拖拽未能在截图中证明窗口移动。
 
+## 第 22 轮确认 / 实现
+用户验收反馈：
+- 第一眼还不够像 Historical OS / 历史情报系统。
+- 全英文界面对中文开发者不友好。
+- 五个动作按钮应默认中文；可以保留中英切换。
+- 用户手动拖拽窗口表现正常。
+
+已完成 Godot Demo v0.2：
+- 默认语言改为中文。
+- 顶部身份改为“历史异常值班台”，保留 Historical OS 副标题。
+- 增加异常警报横幅，第一屏明确显示“第一案：爱因斯坦仍在德国”。
+- 五个动作按钮改为中文，并压缩成 3 列布局，避免第五个按钮被下方窗口遮挡。
+- 顶部增加 `EN` / `中文` 切换按钮。
+- 英文界面仍可切换回来。
+- 将这次 UI 纠偏写入 `tasks/lessons.md`。
+
+验证：
+- `python3 -m json.tool artifacts/godot_demo/data/workbench.json` 通过。
+- `godot --headless --log-file /private/tmp/historical-os-check.log --path artifacts/godot_demo --check-only --script res://scripts/Main.gd` 通过。
+- Web 导出成功，预览地址仍为 `http://127.0.0.1:8890/index.html`。
+- Chrome DevTools 截图确认中文默认页、五个中文按钮可见：`artifacts/historical-os-demo-v0.2-zh-verified.png`。
+- Chrome DevTools 点击 `EN` 后确认英文界面可切换：`artifacts/historical-os-demo-v0.2-en-toggle.png`。
+- Chrome DevTools 点击动作按钮后确认反馈区更新：`artifacts/historical-os-demo-v0.2-action-feedback.png`。
+
 ## 下次继续
-优先验收 Godot Demo v0.1 的第一屏方向；如果成立，下一步在两个方向中择一：
+## 第 27 轮确认 / 实现
+已完成 Web Demo HistoricalRuntime v0.1-v0.2：
+
+```text
+artifacts/web_story_loop_demo/
+```
+
+实现内容：
+- `POST /api/generate` 返回 Story / Choices / Task / Events / Brief / Artifact / HistoryReview / HistoryFlags。
+- Fallback 保持 HTTP 200，并保留完整 runtime 结构。
+- HistoryGuardAgent 规则检查敏感历史语境、高风险死亡/迫害方向、伪档案编号和过早结局。
+- 前端增加 Artifact 面板与审计提示，不改成聊天 UI。
+- 模型文本渲染从 `innerHTML` 改为 DOM / `textContent`。
+
+验证：
+- `node --check artifacts/web_story_loop_demo/server.mjs` 通过。
+- `node --check artifacts/web_story_loop_demo/script.js` 通过。
+- `node --test artifacts/web_story_loop_demo/server.test.mjs artifacts/web_story_loop_demo/frontend_contract.test.mjs` 通过。
+- `PORT=8893` 本地 API shape 验证通过。
+- Chrome 手动验收确认 fallback、Task、Events、Brief、Artifact、Audit、Map node / root jump 正常。
+
+## 第 28 轮确认 / 实现
+已先接入 MiniMax Token Plan 模型调用路径。
+
+运行方式：
+
+```bash
+cd /Users/mahaoxuan/Desktop/黑客松/架空历史故事游戏/artifacts/web_story_loop_demo
+HISTORICAL_RUNTIME_MODEL_PROVIDER=minimax \
+MINIMAX_API_KEY='<your-token-plan-key>' \
+MINIMAX_BASE_URL='https://api.minimaxi.com/anthropic' \
+MINIMAX_MODEL='MiniMax-M2.7' \
+PORT=8892 \
+node server.mjs
+```
+
+支持的环境变量：
+- MiniMax：`MINIMAX_API_KEY`、`MINIMAX_BASE_URL`、`MINIMAX_MODEL`。
+- Token Plan aliases：`TOKEN_PLAN_API_KEY`、`TOKEN_PLAN_BASE_URL`、`TOKEN_PLAN_MODEL`。
+- Provider 开关：`HISTORICAL_RUNTIME_MODEL_PROVIDER=minimax` 或 `MODEL_PROVIDER=minimax`。
+- 可选兼容开关：`MINIMAX_API_FORMAT=openai` 时走 OpenAI-compatible chat completions。
+
+实现说明：
+- MiniMax 默认路径按官方快速接入文档走 Anthropic-compatible `POST /v1/messages`。
+- Token Plan 默认 base URL 为 `https://api.minimaxi.com/anthropic`。
+- Anthropic Messages API 路径保留为默认路径。
+- `process.env` 覆盖 `~/.claude/settings.json`，空字符串按缺失处理。
+
+验证：
+- 新增测试用本地 fake Token Plan server 验证 Anthropic-compatible 请求路径、`x-api-key`、模型名和返回 JSON 解析。
+- OpenAI-compatible 请求路径作为显式兼容模式保留，并有单独测试覆盖。
+- 未使用真实 Token Plan key 做 live call。
+
+## 第 32 轮确认 / 方案冻结
+已完成 HistoricalRuntime v0.3 Agent Runtime 方案冻结稿：
+
+```text
+tasks/historical_runtime_v0.3_agent_runtime_spec.md
+```
+
+核心共识：
+- Agent 的最小单位是可审计 `AgentRun`，不是角色，也不是聊天窗口。
+- Runtime 是事件驱动的 Agent 编排器；玩家动作触发，但流程由 World State 和 Agent Task Graph 决定。
+- v0.3 先采用固定串行骨架：StoryWeaverAgent -> HistoryGuardAgent -> IntelDeskAgent -> ArtifactAgent -> Runtime commit。
+- Agent 之间通过结构化对象通信，完整状态由 Runtime / HistoricalCase 管理。
+- HistoryGuardAgent 是门禁，有权阻止节点进入正式世界线；重写由 RepairAgent 或 StoryWeaverAgent 再跑。
+- StoryWeaver 只能产出 CandidateNode；只有 Runtime 完成审计和汇总后才能 commit 为正式 StoryNode。
+- MiniMax 只是 provider capability，不定义本项目的 Agent 架构。
+- 养成对象是 `HistoricalCase` / 异常世界线本身，玩家是在边玩边生成自己的历史异常游戏。
+- 不确定性是世界生长机制，不是失败惩罚机制。
+- v0.3 要迁移 `agent-progress-visibility-panel` 组件逻辑：异步 Job、真实后端事件、前台拟态事件、后台技术事件。
+
+v0.3 API 方向：
+
+```text
+POST /api/generate/start
+GET /api/jobs/{jobId}
+```
+
+稳定 Job stage：
+
+```text
+queued
+story_weaving
+history_review
+briefing
+artifact_generation
+commit_review
+complete
+failed
+```
+
+前台事件显示“叙事分析组 / 历史审计频道 / 情报值班台 / 档案组 / 值班系统”；真实 Agent 名只放在 `technicalEvents` / metadata。
+
+## 下次继续
+## 第 34 轮确认 / 实现
+已完成 HistoricalRuntime v0.3 第一刀：异步 Job + Agent Runtime 进度面板。
+
+核心路径：
+
+```text
+artifacts/web_story_loop_demo/server.mjs
+artifacts/web_story_loop_demo/script.js
+artifacts/web_story_loop_demo/index.html
+artifacts/web_story_loop_demo/style.css
+artifacts/web_story_loop_demo/server.test.mjs
+artifacts/web_story_loop_demo/frontend_contract.test.mjs
+```
+
+新增 API：
+
+```text
+POST /api/generate/start
+GET /api/jobs/{jobId}
+```
+
+实现内容：
+- 后端维护内存 Job，返回 `jobId` / `statusUrl`，并持续暴露 `status`、`stage`、`events`、`technicalEvents` 和最终 `result`。
+- Runtime pipeline 发出稳定阶段：`story_weaving`、`history_review`、`briefing`、`artifact_generation`、`commit_review`、`complete`。
+- 前端新增 `Agent Runtime` 面板：学生/玩家看到“叙事分析组、历史审计频道、情报值班台、档案组、值班系统”；真实 Agent 名保留在可折叠技术事件里。
+- 增加 `MODEL_REQUEST_TIMEOUT_MS`，默认 `12000`；模型慢或不可达时转 fallback，不再让页面卡在生成中。
+
+验证：
+- `node --check artifacts/web_story_loop_demo/server.mjs` 通过。
+- `node --check artifacts/web_story_loop_demo/script.js` 通过。
+- `node --test artifacts/web_story_loop_demo/server.test.mjs artifacts/web_story_loop_demo/frontend_contract.test.mjs` 通过，6 个测试全过。
+- Chrome 手动点击 `http://127.0.0.1:8895/` 的“爱因斯坦自杀了”后确认：fallback 节点生成、审计提示出现、进度面板走到 `succeeded · 完成`，技术事件可展开。
+
+## 下次继续
+优先验收 Web Demo HistoricalRuntime + v0.3 进度面板手感；如果成立，下一步在两个方向中择一：
 
 1. 增强 OS 窗口系统：真实调整大小、展开、最小化、置顶、布局重置。
 2. 深化 Intel Desk 任务流：来源核验、档案查询、发送指令 modal，使第一分钟更像危机值班流程。
+3. 继续 v0.3 第二刀：把 `HistoricalCase` / `CandidateNode` / commit 语义从当前兼容结构中正式拆出来。
 
 ## 重要约束
-- 不要立刻开始写代码。
 - 不要把产品简化成传统 Galgame 或聊天机器人。
 - 每轮有实质判断后，应写入 `logs/` 并更新 `TODO.md` / `HANDOFF.md`。

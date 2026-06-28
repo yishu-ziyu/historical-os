@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <style>
+      .seal-text { font-family: 'Times New Roman', serif; fill: currentColor; }
+    </style>
+  </defs>
+  <circle cx="100" cy="100" r="92" fill="none" stroke="currentColor" stroke-width="2"/>
+  <circle cx="100" cy="100" r="86" fill="none" stroke="currentColor" stroke-width="1"/>
+  <text class="seal-text" x="100" y="65" text-anchor="middle" font-size="11" font-weight="bold">DEUTSCHE</text>
+  <text class="seal-text" x="100" y="82" text-anchor="middle" font-size="11" font-weight="bold">PHYSIKALISCHE</text>
+  <text class="seal-text" x="100" y="99" text-anchor="middle" font-size="11" font-weight="bold">GESELLSCHAFT</text>
+  <text class="seal-text" x="100" y="120" text-anchor="middle" font-size="9" font-style="italic">gegr. 1845 · Berlin</text>
+  <line x1="40" y1="135" x2="160" y2="135" stroke="currentColor" stroke-width="1"/>
+  <text class="seal-text" x="100" y="152" text-anchor="middle" font-size="10">e.V.</text>
+  <text class="seal-text" x="100" y="172" text-anchor="middle" font-size="8" font-style="italic">REICHSARCHIV 1933</text>
+</svg>

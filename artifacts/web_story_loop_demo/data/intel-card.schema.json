@@ -1,0 +1,85 @@
+{
+  "$schema": "intel-card-v1",
+  "description": "情报卡（档案体）数据结构。一回合第一段的载体。",
+
+  "id": "ic-einstein-1933-001",
+  "caseId": "einstein-1933",
+  "turn": 1,
+
+  "classification": "绝密",
+
+  "header": {
+    "title": "柏林科学院内部通信",
+    "documentId": "B-GW-1933-0472",
+    "date": "1933-10-15",
+    "source": "德国物理学会存档",
+    "classification": "绝密",
+    "language": "de-zh"
+  },
+
+  "body": {
+    "text": "10 月 15 日常务会议记录显示，所有犹太裔会员名单被单独归档至\"特别登记册\"。但 A. Einstein 的名字仍在完整会员名册中。",
+    "originalLanguage": "de",
+    "originalSnippet": "Herr Professor wünscht zu bleiben.",
+    "translation": "教授希望留下。",
+    "handwrittenNotes": [
+      {
+        "location": "会议纪要注释栏",
+        "text": "Herr Professor wünscht zu bleiben.",
+        "inkColor": "blue",
+        "legibility": "clear"
+      }
+    ]
+  },
+
+  "contradictions": [
+    {
+      "id": "c1",
+      "type": "membership_anomaly",
+      "description": "犹太裔会员名单已单独归档，但 Einstein 名字仍在完整名册",
+      "significance": "high"
+    }
+  ],
+
+  "clues": [
+    {
+      "id": "clue-1",
+      "text": "Einstein 名字仍在完整会员名册中",
+      "category": "人物状态",
+      "confidence": "verified",
+      "sourceDocumentId": "B-GW-1933-0472"
+    },
+    {
+      "id": "clue-2",
+      "text": "手写注释：教授希望留下",
+      "category": "意图信号",
+      "confidence": "unverified",
+      "sourceDocumentId": "B-GW-1933-0472"
+    },
+    {
+      "id": "clue-3",
+      "text": "时间节点异常：柏林会议尚未召开",
+      "category": "时间异常",
+      "confidence": "inferred",
+      "sourceDocumentId": null
+    }
+  ],
+
+  "actions": [
+    { "id": "verify-source", "label": "验证来源", "icon": "magnifying-glass" },
+    { "id": "mark-clues", "label": "标记线索", "icon": "highlighter" },
+    { "id": "send-directive", "label": "发送指令", "icon": "telegraph" }
+  ],
+
+  "nextTimeNode": "1933-10-17",
+  "linkedDocuments": [],
+
+  "provenance": {
+    "type": "generated",
+    "confidence": 0.85,
+    "historicalAnchors": ["柏林物理学会 1933 年会员名单", "Einstein 1933 年 10 月未离开柏林"],
+    "note": "基于真实历史档案结构生成，具体文档编号为虚构。"
+  },
+
+  "historyFlags": ["fictional_branch", "sensitive_context"]
+}

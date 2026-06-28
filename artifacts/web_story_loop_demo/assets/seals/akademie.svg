@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <style>
+      .reich-text { font-family: 'Times New Roman', serif; fill: currentColor; }
+    </style>
+  </defs>
+  <circle cx="100" cy="100" r="92" fill="none" stroke="currentColor" stroke-width="2"/>
+  <circle cx="100" cy="100" r="86" fill="none" stroke="currentColor" stroke-width="1"/>
+  <text class="reich-text" x="100" y="68" text-anchor="middle" font-size="11" font-weight="bold">PREUSSISCHE</text>
+  <text class="reich-text" x="100" y="85" text-anchor="middle" font-size="11" font-weight="bold">AKADEMIE DER</text>
+  <text class="reich-text" x="100" y="102" text-anchor="middle" font-size="11" font-weight="bold">WISSENSCHAFTEN</text>
+  <line x1="50" y1="120" x2="150" y2="120" stroke="currentColor" stroke-width="1"/>
+  <text class="reich-text" x="100" y="140" text-anchor="middle" font-size="9" font-style="italic">zu Berlin · 1700</text>
+  <text class="reich-text" x="100" y="160" text-anchor="middle" font-size="8">REICHSARCHIV</text>
+  <text class="reich-text" x="100" y="175" text-anchor="middle" font-size="7" font-style="italic">ARCHIV-AKTE Nr. 47</text>
+</svg>

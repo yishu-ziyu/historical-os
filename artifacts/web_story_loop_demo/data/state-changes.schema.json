@@ -1,0 +1,95 @@
+{
+  "$schema": "state-changes-v1",
+  "description": "状态变更声明。LLM 每次叙事输出必须附带的结构化声明——不是自由文本续写，而是引擎可执行的状态变更。参照 Story2Game 论文的设计。",
+
+  "turn": 2,
+  "playerChoiceId": "action-intel-ministry",
+
+  "stateChanges": [
+    {
+      "id": "sc-001",
+      "target": "character.einstein",
+      "field": "status",
+      "from": "hesitating",
+      "to": "protected",
+      "evidence": "文化部 10/18 内部文件明确将 Einstein 列为\"关键技术人员\"保护名单",
+      "visibility": "player_visible"
+    },
+    {
+      "id": "sc-002",
+      "target": "organization.berlin-academy",
+      "field": "control",
+      "from": "autonomous",
+      "to": "ministry_overseen",
+      "evidence": "文化部开始参与科学院的人员管理",
+      "visibility": "player_visible"
+    },
+    {
+      "id": "sc-003",
+      "target": "risk.overall",
+      "field": "value",
+      "from": 1,
+      "to": 2,
+      "reason": "秘密接触已被记录在案",
+      "visibility": "player_visible"
+    },
+    {
+      "id": "sc-004",
+      "target": "clue.clue-2",
+      "field": "confidence",
+      "from": "unverified",
+      "to": "partially_verified",
+      "reason": "文化部文件侧面印证了 Einstein 留下的意愿",
+      "visibility": "player_visible"
+    },
+    {
+      "id": "sc-005",
+      "target": "flags.contact_exposed",
+      "field": "value",
+      "from": false,
+      "to": true,
+      "reason": "文化部文件中记录了来自\"普鲁士文化协会\"的接触",
+      "visibility": "player_visible"
+    }
+  ],
+
+  "newClues": [
+    {
+      "id": "clue-4",
+      "text": "理论物理研究所 = 铀计划前身？",
+      "category": "关联推断",
+      "confidence": "inferred",
+      "sourceDocumentId": "B-GW-1933-1018"
+    }
+  ],
+
+  "newNodes": [
+    {
+      "id": "node-culture-ministry",
+      "label": "德国文化部",
+      "type": "government",
+      "status": "new",
+      "statusLabel": "新出现"
+    }
+  ],
+
+  "newEdges": [
+    {
+      "from": "node-uranium-program",
+      "to": "node-culture-ministry",
+      "label": "行政管辖",
+      "strength": "strong"
+    }
+  ],
+
+  "nextIntelCard": {
+    "title": "德国文化部内部备忘录",
+    "documentId": "B-KM-1933-1018",
+    "date": "1933-10-18",
+    "provenance": "generated",
+    "confidence": 0.8
+  },
+
+  "historyFlags": ["fictional_branch", "sensitive_context"],
+  "requiresHumanApproval": false
+}

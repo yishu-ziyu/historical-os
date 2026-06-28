@@ -29,6 +29,24 @@
 - [x] 第 21 轮：启用 Superpower-style 交互规划板，在 cmux 侧边栏打开 HTML，用“看一幕、改一幕”降低抽象度。
 - [x] 第 22 轮：根据验收反馈完成 Godot Demo v0.2：中文默认界面、五个中文动作按钮、中英切换、异常警报横幅，并确认用户侧手动拖拽可用。
 - [x] 第 23 轮：核心转向——产品不是固定代码驱动的事件系统，而是 LLM 驱动、历史框架约束、可随机自由生长的网状历史故事书。
+- [x] 第 27 轮：完成 Web Demo HistoricalRuntime v0.1-v0.2；`/api/generate` 稳定返回 Task / Events / Brief / Artifact / HistoryReview，前端显示 Artifact 与审计提示，并完成 fallback、API shape 和 Chrome 手动验收。
+- [x] 第 28 轮：先接入 MiniMax Token Plan；按官方快速接入文档，默认走 Anthropic-compatible `https://api.minimaxi.com/anthropic/v1/messages`，并保留 `MINIMAX_API_FORMAT=openai` 的显式兼容路径。
+- [x] 第 29 轮：完成三种视觉方向可行性对比 demo；确认“档案素描 / 情报档案 OS”是主方向，极简像素战略地图与纸上兵棋地图只作为地图标记、事件符号、局部组件语言，不作为主风格。
+- [x] 第 30 轮：完成行走式历史分叉原型；验证“操控爱因斯坦在柏林场景中走到地点并触发分叉”的机制可行，但限定为档案 OS 的空间入口层，不转向完整像素 RPG。
+- [x] 第 31 轮：迁移到正式 Godot 项目壳；完成 `CharacterBody2D` 玩家、`Area2D` 地点触发、`CanvasLayer` 档案 UI、JSON 分叉数据，并通过 Godot headless 检查。
+- [x] 第 32 轮：冻结 HistoricalRuntime v0.3 Agent Runtime 规格；确认 `AgentRun`、固定串行任务图、异步 Job API 和前台/技术事件分层。
+- [x] 第 33 轮：补齐开发进展总览、项目恢复入口、奕枢开发日志与今天日记，确保下次开发可恢复上下文。
+- [x] 第 32 轮：完成 HistoricalRuntime v0.3 Agent Runtime 方案冻结稿；确认 AgentRun、HistoricalCase、Candidate/Commit、异步 Job、双层进度事件和 agent-progress-visibility-panel 迁移边界。
+- [x] 第 34 轮：完成 HistoricalRuntime v0.3 第一刀；实现异步 Job API、双层进度事件、前端 Agent Runtime 面板，并加入模型请求超时 fallback。
+- [x] 第 35 轮：完成竞品调研（TNO / Kaiserreich / Papers Please / Disco Elysium），冻结「混合式三段展开」回合循环设计，产出 `docs/turn_cycle_design.md`，确认「档案体」文案标准为用户喜欢的风格。
+- [x] 第 36 轮：完成回合循环的数据层设计，产出 4 个 JSON schema（intel-card / situation-room / action-options / state-changes）和 `data/spec.md`，并通过交叉引用验证。
+- [x] 第 37 轮：完成三段式回合循环的后端实现，产出 3 个 prompt builder（Briefing / Situation Room / Aftermath）+ 3 个解析器 + `runTurn`/`runTurnAftermath` 编排器 + 2 个新端点（`/api/turn/start`、`/api/turn/aftermath`），保留旧端点向后兼容，4 个新测试全绿。
+- [x] 第 38 轮：完成三段式回合循环的前端实现，产出 `turn_cycle.js`（`renderIntelCard` + `renderSituationRoom` + `renderAftermath` + 状态机 + DOM 安全渲染）+ `index.html` turn cycle 面板 + `style.css` 档案体/态势图/Aftermath 样式。9 个前端测试全绿，含 1 个 e2e 数据契约测试。
+- [x] 第 39 轮：完成真实模型接入测试。修复了 `callAnthropicMessages` 把 turn cycle JSON 提前解析掉的 bug（现在返回 raw text，由 stage parser 处理）。加严了 schema 验证：缺关键字段时抛错触发 fallback。max_tokens 从 1200 → 2000，temperature 从 0.9 → 0.5 让模型更稳定按 schema 输出。MiniMax-M3 端到端验证：情报卡（柏林物理学会会员名录变动报告 / B-DPG-1933-0417 / 德文档案原文 / 5 线索 2 矛盾点）+ 态势面板（5 节点 / 4 行动选项含「通过普朗克渠道递送离境建议」等历史合理项）+ Aftermath（277 字叙事 / 2 状态变更 / 下一张情报卡「盖世太保内部备忘」）。
+- [x] 第 40 轮：完成 case state 引擎（累积 nodes/edges/risk/stateChangeHistory）+ 多回合压力测试。新增 `/api/case/:caseId` 查询端点和 `/api/case/reset` 重置端点，5 回合压力测试全绿。真实模型多回合验证：T1 后 nodes 从 1 → 6，stateChangeHistory 累积 3 条有历史合理性的状态变更（爱因斯坦从公共活跃到隐退、普朗克从中立到积极斡旋）。
+- [x] 第 41 轮：完成历史档案素材功能（方案 B 分层）。下载 4 张 Wikimedia 公开域肖像（爱因斯坦 1921、普朗克 c1910、1911 索尔维会议合影、普朗克晚年版）。3 个 inline SVG 印章（DPG、PTR、普鲁士科学院）。HTML 档案柜侧栏（4 个文件夹，11 个文件项）。HTML dialog modal 显示档案描述。视觉风格保持情报档案 OS（深木色 + 金色 + 等宽字体）。所有数据由档案体手写描述，零 AI 生图，零虚假历史感。
+- [x] 第 42 轮：完成 yishuship 协议全面接入。`.ship/state.yaml` + STATE_README；7 个 `/yishuship-*` 命令；项目级 builder/checker/session-startup agent；自写 YAML 子集解析器 + 21 个状态测试。CLAUDE.md §14.12 加 Operational binding 表。
+- [x] 第 43 轮：完成 marked-clue-state 端到端。case state 加 markedClues 字段；新 API `POST /api/case/:id/mark-clue`；前端 turnState 同步 + 笔记 textarea + Aftermath 锁定数显示；note 历史框架校验拒绝"游戏/开挂"等（422）。11 个新测试全过；in-scope 41/41 全过；yishuship 5 phase 真实跑通（intake → design → dev → qa → handoff）。
 
 ## 已确认的产品判断
 1. 架空历史世界应该持续演化。
@@ -51,6 +69,15 @@
 18. 第一屏布局应有默认秩序，但窗口支持自由拖拽、调整、展开、最小化，以强化 OS 感。
 19. Demo 实现应放在具体游戏项目产物目录中，而不是修改 Godot 引擎源码；当前实现落点为 `artifacts/godot_demo/`。
 20. 产品核心应转向“LLM 驱动的网状历史故事书”：系统弹出历史事件，给出分支选项和自然语言输入，LLM 在历史框架约束下生成后续故事线；核心标准是好玩、好看。
+21. 美术和交互主方向应采用“档案馆式架空历史模拟游戏”：纸上地图、素描人物、报纸/电报/年鉴 UI、少量像素图标。不要把 MVP 做成角色在地图上跑来跑去的像素 RPG。
+22. 三个视觉方案不是平级候选：档案素描风作为主屏和主体验；纸上兵棋/历史地图作为地图层；极简像素战略地图只作为低成本标记、图标或局部态势表达。
+23. 可以探索”可行走的历史选择空间”：玩家操控历史人物或代理角色走到地点触发历史分叉；但它应服务于档案卡、情报卡、报纸、地图反馈和历史状态更新，不应替代主叙事系统。
+24. 一回合 = 一次决策，三段展开（情报卡 → 沙盘推演 → LLM 叙事推演），参照 TNO / Papers Please / Disco Elysium 的共同模式。
+25. 情报卡文案标准 = “档案体”：有编号、日期、来源、正文、手写注释、矛盾点；不直接告诉玩家”发生了什么”，让玩家从文本拼出来；中英混杂（档案原文保留原文，玩家界面中文）。
+26. LLM 每次叙事输出必须附带可执行的状态声明，不是自由文本续写。
+27. 自由文本输入受历史框架约束，不符合的选项给出条件反馈而非直接拒绝。
+28. 操作有体感：标记/盖章/归档，参照 Papers Please 的物理感。
+29. 时限压力是叙事性的（报纸出刊/电报到达/会议召开），不是倒计时条。
 
 ## 下一步讨论问题
 Godot Demo v0.2 验收与下一轮产品/交互取舍：
@@ -59,9 +86,9 @@ Godot Demo v0.2 验收与下一轮产品/交互取舍：
 - 下一轮美术是否进入真实人物立绘 / 背景图生成，而不是继续依赖纯 UI 占位？
 
 候选下一步：
-- 增强窗口系统：拖拽、调整大小、置顶、展开、最小化。
-- 深化 Intel Desk：来源核验、档案查询、发送指令的轻量 modal。
-- 深化视觉：更像历史情报系统，减少普通 dashboard 感。
+- 在 Godot Editor 中验收 `artifacts/godot_walking_branch/` 的移动和触发手感。
+- 下一步优先做地点触发后的 UI 深化：港口电报、科学院档案、风险审计、报纸舆论。
+- 再下一步补独立 sprite sheet 和地图资产，不再从概念资产表硬切角色。
 
 ## 不要重复探索
 - 不要把它直接做成传统 Galgame。
@@ -77,3 +104,26 @@ Godot Demo v0.2 验收与下一轮产品/交互取舍：
 - Godot Demo：`artifacts/godot_demo/`
 - Web 预览导出：`artifacts/godot_demo_web/index.html`
 - 当前中文验收截图：`artifacts/historical-os-demo-v0.2-zh-verified.png`
+- HistoricalRuntime Web Demo：`artifacts/web_story_loop_demo/`
+- HistoricalRuntime 实施日志：`logs/round_027_2026-05-19.md`
+- MiniMax Token Plan 接入日志：`logs/round_028_2026-05-19.md`
+- 视觉方案可行性 Demo：`artifacts/style_feasibility_demo/`
+- 视觉方案验收截图：`artifacts/style-feasibility-archive.png`
+- 视觉方案日志：`logs/round_029_2026-05-19.md`
+- 行走式历史分叉 Demo：`artifacts/walking_branch_demo/`
+- 行走式历史分叉预览：`http://127.0.0.1:8894/artifacts/walking_branch_demo/index.html`
+- 行走式历史分叉截图：`artifacts/walking-branch-demo-initial.png`、`artifacts/walking-branch-demo-triggered.png`
+- 行走式历史分叉美术资产：`artifacts/walking_branch_demo/assets/berlin_asset_sheet_v1.png`
+- 行走式历史分叉美术接入截图：`artifacts/walking-branch-demo-art-v1.png`
+- 行走式历史分叉站立修复截图：`artifacts/walking-branch-demo-art-v1-still-fixed.png`
+- 行走式历史分叉角色修复截图：`artifacts/walking-branch-demo-player-fixed.png`
+- 行走式历史分叉日志：`logs/round_030_2026-05-19.md`
+- Godot 行走式历史分叉项目：`artifacts/godot_walking_branch/`
+- Godot 行走式历史分叉 README：`artifacts/godot_walking_branch/README.md`
+- Godot 行走式历史分叉日志：`logs/round_031_2026-05-19.md`
+- HistoricalRuntime v0.3 规格日志：`logs/round_032_2026-05-20.md`
+- 开发进展总览日志：`logs/round_033_2026-05-20.md`
+- HistoricalRuntime v0.3 异步 Job/进度面板日志：`logs/round_034_2026-05-20.md`
+- v0.3 Agent Runtime 规格：`tasks/historical_runtime_v0.3_agent_runtime_spec.md`
+- HistoricalRuntime v0.3 Agent Runtime 方案：`tasks/historical_runtime_v0.3_agent_runtime_spec.md`
+- HistoricalRuntime v0.3 方案日志：`logs/round_032_2026-05-20.md`

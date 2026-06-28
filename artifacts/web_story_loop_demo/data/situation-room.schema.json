@@ -1,0 +1,97 @@
+{
+  "$schema": "situation-room-v1",
+  "description": "态势面板数据结构。一回合第二段的载体——节点 + 连线 + 状态标签。",
+
+  "caseId": "einstein-1933",
+  "turn": 2,
+
+  "anchor": {
+    "id": "anchor-einstein",
+    "label": "爱因斯坦未离开德国",
+    "type": "anomaly_origin",
+    "year": 1933,
+    "status": "active"
+  },
+
+  "nodes": [
+    {
+      "id": "node-berlin-academy",
+      "label": "柏林科学院",
+      "type": "organization",
+      "status": "monitored",
+      "statusLabel": "已记录非官方接触",
+      "depth": 1
+    },
+    {
+      "id": "node-uranium-program",
+      "label": "铀计划团队",
+      "type": "research_program",
+      "status": "emerging",
+      "statusLabel": "前身机构出现",
+      "depth": 1
+    },
+    {
+      "id": "node-international-opinion",
+      "label": "国际舆论",
+      "type": "external_pressure",
+      "status": "latent",
+      "statusLabel": "尚未激活",
+      "depth": 1
+    },
+    {
+      "id": "node-culture-ministry",
+      "label": "德国文化部",
+      "type": "government",
+      "status": "new",
+      "statusLabel": "新出现",
+      "depth": 1
+    }
+  ],
+
+  "edges": [
+    {
+      "from": "node-berlin-academy",
+      "to": "node-uranium-program",
+      "label": "人才关联",
+      "strength": "weak"
+    },
+    {
+      "from": "node-berlin-academy",
+      "to": "node-international-opinion",
+      "label": "学术声誉",
+      "strength": "medium"
+    },
+    {
+      "from": "node-uranium-program",
+      "to": "node-culture-ministry",
+      "label": "行政管辖",
+      "strength": "strong"
+    }
+  ],
+
+  "worldLineShift": {
+    "totalDelta": 2,
+    "domains": [
+      { "domain": "人物状态", "delta": "+1", "detail": "爱因斯坦：犹豫中（原历史：已开始流亡准备）" },
+      { "domain": "机构状态", "delta": "+1", "detail": "柏林科学院：出现非官方接触渠道" }
+    ]
+  },
+
+  "riskIndicators": {
+    "overall": 2,
+    "max": 5,
+    "components": [
+      { "label": "操作风险", "value": 1 },
+      { "label": "暴露风险", "value": 1 },
+      { "label": "历史偏移", "value": 0 },
+      { "label": "不可控变量", "value": 0 },
+      { "label": "时间压力", "value": 0 }
+    ]
+  },
+
+  "nextDeadline": {
+    "type": "newspaper_publication",
+    "label": "柏林日报出刊",
+    "date": "1933-10-20"
+  }
+}

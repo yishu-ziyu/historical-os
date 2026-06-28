@@ -1,0 +1,58 @@
+{
+  "$schema": "action-options-v1",
+  "description": "行动选项数据结构。Situation Room 中玩家可选择的行动方向。",
+
+  "turn": 2,
+  "generatedBy": "playerChoice-turn-1-secret-contact",
+
+  "options": [
+    {
+      "id": "action-warn-einstein",
+      "label": "警告爱因斯坦风险",
+      "icon": "warning",
+      "historicalPlausibility": "high",
+      "description": "通过中间渠道向爱因斯坦传递信息，告知他当前处境的风险。",
+      "riskCost": 1,
+      "intelReturn": "medium",
+      "unlocksNodes": [],
+      "blocksNodes": [],
+      "consequencePreview": "爱因斯坦可能提前警觉，但也可能暴露信息来源。"
+    },
+    {
+      "id": "action-intel-ministry",
+      "label": "获取文化部更多情报",
+      "icon": "archive-search",
+      "historicalPlausibility": "high",
+      "description": "从文化部内部渠道获取关于 Einstein 保护方案的更多细节。",
+      "riskCost": 0,
+      "intelReturn": "high",
+      "unlocksNodes": ["node-culture-ministry"],
+      "blocksNodes": [],
+      "consequencePreview": "低风险，能深入了解文化部的内部评估，但不会直接改变 Einstein 的处境。"
+    },
+    {
+      "id": "action-assess-uranium",
+      "label": "评估铀计划关联",
+      "icon": "map-pin",
+      "historicalPlausibility": "medium",
+      "description": "调查德国铀计划团队与 Einstein 之间的潜在联系。",
+      "riskCost": 1,
+      "intelReturn": "high",
+      "unlocksNodes": ["node-uranium-program"],
+      "blocksNodes": [],
+      "consequencePreview": "可能发现 Einstein 被纳入核计划的关键角色，但也可能引发新的风险节点。"
+    }
+  ],
+
+  "previousChoiceImpact": {
+    "description": "上一回合选择「秘密接触」的影响已显现：接触被记录在案，风险指数上升。可选范围从 4 个缩减至 3 个，「舆论施压」因暴露风险过高而被移除。",
+    "removedOptions": ["action-public-pressure"]
+  },
+
+  "deadline": {
+    "type": "newspaper_publication",
+    "label": "柏林日报出刊",
+    "date": "1933-10-20",
+    "consequenceIfMissed": "公开信息可能被媒体报道，改变国际舆论节点状态。"
+  }
+}

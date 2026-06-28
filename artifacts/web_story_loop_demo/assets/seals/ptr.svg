@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <style>
+      .ptr-text { font-family: 'Times New Roman', serif; fill: currentColor; }
+    </style>
+  </defs>
+  <polygon points="100,15 175,55 175,145 100,185 25,145 25,55"
+           fill="none" stroke="currentColor" stroke-width="2"/>
+  <polygon points="100,30 162,62 162,138 100,170 38,138 38,62"
+           fill="none" stroke="currentColor" stroke-width="0.8"/>
+  <text class="ptr-text" x="100" y="65" text-anchor="middle" font-size="10" font-weight="bold">PHYSIKALISCH-</text>
+  <text class="ptr-text" x="100" y="80" text-anchor="middle" font-size="10" font-weight="bold">TECHNISCHE</text>
+  <text class="ptr-text" x="100" y="95" text-anchor="middle" font-size="10" font-weight="bold">REICHSANSTALT</text>
+  <text class="ptr-text" x="100" y="118" text-anchor="middle" font-size="9" font-style="italic">Braunschweig · Berlin</text>
+  <text class="ptr-text" x="100" y="142" text-anchor="middle" font-size="8">GEGR. 1887</text>
+  <text class="ptr-text" x="100" y="158" text-anchor="middle" font-size="7" font-style="italic">STRENG VERTRAULICH</text>
+</svg>

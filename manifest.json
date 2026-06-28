@@ -1,7 +1,7 @@
 {
   "project": "架空历史故事游戏",
   "root": "/Users/mahaoxuan/Desktop/黑客松/架空历史故事游戏",
-  "status": "round_23_llm_networked_history_storybook_direction",
+  "status": "round_33_development_checkpoint",
   "created_at": "2026-05-17",
   "protocol": "Agent记忆外化与跨Session状态继承",
   "entrypoints": {
@@ -13,7 +13,12 @@
     "godot_demo": "artifacts/godot_demo/",
     "godot_demo_web": "artifacts/godot_demo_web/index.html",
     "godot_demo_prompt": "artifacts/godot_demo_prompt_v0.1.md",
-    "interaction_planning_board": "artifacts/interaction_planning_board.html"
+    "interaction_planning_board": "artifacts/interaction_planning_board.html",
+    "style_feasibility_demo": "artifacts/style_feasibility_demo/index.html",
+    "walking_branch_demo": "artifacts/walking_branch_demo/index.html",
+    "godot_walking_branch": "artifacts/godot_walking_branch/project.godot",
+    "development_checkpoint": "logs/round_033_2026-05-20.md",
+    "runtime_v0_3_spec": "tasks/historical_runtime_v0.3_agent_runtime_spec.md"
   },
   "confirmed_direction": {
     "world_evolution": "automatic_by_default",
@@ -40,5 +45,70 @@
     "known_gap": "Visual art is still UI-first and lacks real character/background assets; next art pass should use generated or supplied raster assets rather than SVG-like placeholders.",
     "user_verified": "Manual window drag works on the user's side."
   },
-  "next_round": "第24轮：定义 LLM 驱动网状历史故事书的最小可玩循环：事件弹出 → 分支/自由输入 → LLM 生成后续 → 新故事线 → 回退/继续。"
+  "latest_visual_direction": {
+    "name": "archive_sketch_intelligence_os",
+    "preview_url": "http://127.0.0.1:8893/index.html",
+    "demo_path": "artifacts/style_feasibility_demo/",
+    "screenshot": "artifacts/style-feasibility-archive.png",
+    "primary_style": "纸上地图 + 素描人物 + 报纸/电报/年鉴 UI + 少量像素图标",
+    "secondary_layers": [
+      "paper_wargame_map_for_map_layer",
+      "minimal_pixel_icons_for_markers_only"
+    ],
+    "rejected_main_surface": "角色在地图上跑来跑去的像素 RPG",
+    "godot_route": "Godot 4.x + 2D + Compatibility renderer + GDScript + Control UI + JSON data"
+  },
+  "latest_mechanic_probe": {
+    "name": "walking_historical_branch_demo",
+    "preview_url": "http://127.0.0.1:8894/artifacts/walking_branch_demo/index.html",
+    "demo_path": "artifacts/walking_branch_demo/",
+    "screenshots": [
+      "artifacts/walking-branch-demo-initial.png",
+      "artifacts/walking-branch-demo-triggered.png",
+      "artifacts/walking-branch-demo-art-v1.png",
+      "artifacts/walking-branch-demo-art-v1-still-fixed.png",
+      "artifacts/walking-branch-demo-player-fixed.png"
+    ],
+    "asset_sheet": "artifacts/walking_branch_demo/assets/berlin_asset_sheet_v1.png",
+    "mechanic": "WASD/arrow movement, location trigger, space interaction, dossier transition",
+    "branch_locations": [
+      "port_exit",
+      "academy_stay",
+      "police_risk",
+      "press_public_opinion"
+    ],
+    "boundary": "spatial choice layer over archive OS, not a full pixel RPG"
+  },
+  "latest_godot_project": {
+    "name": "Walking Historical Branch",
+    "path": "artifacts/godot_walking_branch/",
+    "project_file": "artifacts/godot_walking_branch/project.godot",
+    "main_scene": "artifacts/godot_walking_branch/scenes/Main.tscn",
+    "main_script": "artifacts/godot_walking_branch/scripts/Main.gd",
+    "branch_data": "artifacts/godot_walking_branch/data/branches.json",
+    "godot_version_verified": "4.6.2.stable.official",
+    "verification": [
+      "godot --headless --path artifacts/godot_walking_branch --check-only --script res://scripts/Main.gd",
+      "godot --headless --path artifacts/godot_walking_branch --quit-after 2"
+    ]
+  },
+  "latest_runtime_spec": {
+    "name": "HistoricalRuntime v0.3 Agent Runtime spec",
+    "path": "tasks/historical_runtime_v0.3_agent_runtime_spec.md",
+    "log": "logs/round_032_2026-05-20.md",
+    "api_plan": [
+      "POST /api/generate/start",
+      "GET /api/jobs/{jobId}"
+    ],
+    "task_graph": "StoryWeaverAgent -> HistoryGuardAgent -> IntelDeskAgent -> ArtifactAgent -> Runtime commit"
+  },
+  "latest_checkpoint": {
+    "name": "development progress checkpoint",
+    "path": "logs/round_033_2026-05-20.md",
+    "next_choices": [
+      "Godot movement and branch UI polish",
+      "HistoricalRuntime v0.3 async job pipeline"
+    ]
+  },
+  "next_round": "第34轮：二选一推进：Godot 四个分叉后续 UI，或 HistoricalRuntime v0.3 async job pipeline。"
 }

@@ -1,0 +1,12 @@
+taskId: vibero-20260628-001
+status: done
+iteration: 1
+stopReason: success
+startedAt: "2026-06-28T12:00:00Z"
+completedAt: "2026-06-28T12:30:00Z"
+notes:
+  - "Builder wave 1 完成：server.mjs + turn_cycle.js + 11 个新测试"
+  - "Checker wave 2：in-scope 41 个测试全过；3 个 baseline 历史 fail 与本刀无关"
+  - "Wave 1 修了 2 个 bug：\\b 中文字符 + 模型超时未触发 fallback（用 MODEL_REQUEST_TIMEOUT_MS=1）"
+  - "QA：8/8 Done Criteria 全过；e2e contract test 验证 Aftermath 不擦除 markedClues"
+  - "浏览器视觉验证需要 Playwright，留 round 044+ 接入"
