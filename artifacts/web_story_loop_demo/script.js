@@ -9,28 +9,22 @@ const seed = {
     { title: "爱因斯坦通过秘密渠道逃离", hint: "逃亡路线会牵动哪些人和国家？" }
   ],
   parentId: null,
-  childIds: []
+  childIds: [],
+  status: "seed",
+  artifactIds: [],
+  historyFlags: ["baseline"]
 };
-
-const fragments = [
-  "这件事没有立刻改变战争，却改变了每个人对未来的想象。",
-  "最先反应的不是政府，而是一群已经学会沉默的学者。",
-  "报纸没有报道真相，只留下了几句互相矛盾的短讯。",
-  "一条看似无关的边境记录，突然变成了整条世界线的钥匙。",
-  "没有人知道这是偶然、阴谋，还是历史自己选择了另一条路。"
-];
-
-const followUps = [
-  ["跟进德国科学界", "看学者们如何选择沉默、逃亡或合作。"],
-  ["跟进美国情报系统", "看海外世界如何理解这条异常。"],
-  ["跟进犹太科学家逃亡网络", "看一条秘密营救线如何形成。"],
-  ["跟进纳粹宣传机器", "看政权如何利用或掩盖这件事。"],
-  ["跟进爱因斯坦本人", "看他如何在恐惧、责任与求生之间选择。"]
-];
 
 let nextNodeId = 1;
 let nodes = [seed];
 let current = seed;
+let isGenerating = false;
+let currentTask = null;
+let runtimeEvents = [];
+let currentBrief = null;
+let artifacts = [];
+let approvalRequest = null;
+let currentJob = null;
 
 const storyText = document.getElementById("storyText");
 const choices = document.getElementById("choices");
@@ -38,50 +32,192 @@ const nodeList = document.getElementById("nodeList");
 const backBtn = document.getElementById("backBtn");
 const customInput = document.getElementById("customInput");
 const customBtn = document.getElementById("customBtn");
+const modelStatus = document.getElementById("modelStatus");
+const pathTrail = document.getElementById("pathTrail");
+const nodeMeta = document.getElementById("nodeMeta");
+const taskPanel = document.getElementById("taskPanel");
+const eventLog = document.getElementById("eventLog");
+const briefPanel = document.getElementById("briefPanel");
+const artifactPanel = document.getElementById("artifactPanel");
+const auditPanel = document.getElementById("auditPanel");
+const progressPanel = document.getElementById("progressPanel");
+const progressStatus = document.getElementById("progressStatus");
+const stageTrack = document.getElementById("stageTrack");
+const currentDeskMessage = document.getElementById("currentDeskMessage");
+const progressEvents = document.getElementById("progressEvents");
+const technicalEvents = document.getElementById("technicalEvents");
 
-function pick(items) {
-  return items[Math.floor(Math.random() * items.length)];
+const stageLabels = {
+  queued: "接入",
+  story_weaving: "候选分支",
+  history_review: "历史审计",
+  briefing: "情报简报",
+  artifact_generation: "档案归档",
+  commit_review: "世界线提交",
+  complete: "完成",
+  failed: "失败",
+};
+
+const stageOrder = [
+  "queued",
+  "story_weaving",
+  "history_review",
+  "briefing",
+  "artifact_generation",
+  "commit_review",
+  "complete",
+];
+
+const artifactTypeLabels = {
+  archive_record: "档案记录",
+  telegram: "电报",
+  newspaper: "报纸",
+  map_marker: "地图标记",
+  timeline_delta: "时间线变化",
+  character_profile: "人物卡",
+  risk_notice: "风险提示",
+};
+
+const provenanceLabels = {
+  baseline: "历史基准",
+  generated: "当前世界线生成",
+  unverified: "未核验情报",
+  player_created: "玩家输入",
+};
+
+function fallbackChoices() {
+  return [
+    { title: "跟进德国科学界", hint: "看学者们如何选择沉默、逃亡或合作。" },
+    { title: "跟进国际救援网络", hint: "看海外世界如何尝试救出仍在欧洲的人。" },
+    { title: "跟进爱因斯坦本人", hint: "看他如何在恐惧、责任与求生之间选择。" }
+  ];
 }
 
-function generateNode(direction, parent) {
-  const siblingTitles = new Set(
-    parent.childIds
-      .map(childId => nodes.find(node => node.id === childId))
-      .filter(Boolean)
-      .map(node => node.title)
-  );
-  siblingTitles.add(direction);
+function fallbackStory(direction) {
+  return `你选择了：${direction}\n\n这个方向已经被系统识别为新的历史分叉。由于模型暂时不可用，故事先以占位方式继续：这条线会影响德国科学界、国际救援网络和爱因斯坦本人的处境。\n\n故事没有结束。它分裂成了新的几条线。`;
+}
 
-  const nextChoices = [...followUps]
-    .filter(([title]) => !siblingTitles.has(title))
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 3)
-    .map(([title, hint]) => ({ title, hint }));
-
+function createLocalEvent(type, message) {
   return {
-    id: `node-${nextNodeId++}`,
-    title: direction,
-    story: `你选择了：${direction}\n\n${expand(direction)}\n\n${pick(fragments)}\n\n故事没有结束。它分裂成了新的几条线。`,
-    choices: nextChoices,
-    parentId: parent.id,
-    childIds: []
+    id: `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    taskId: currentTask?.id || "local-task",
+    type,
+    message,
+    createdAt: new Date().toISOString(),
   };
 }
 
-function expand(direction) {
-  if (direction.includes("自杀")) {
-    return "消息最初被压了下来。几位德国学者在私人信件里提到：死亡本身已经可怕，但更可怕的是它被迫变成一种政治信号。美国和英国的学术救援网络开始重新评估每一个仍在欧洲的科学家。";
+function createLocalArtifact(type, title, content) {
+  return {
+    id: `local-artifact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    type,
+    title,
+    content,
+    provenance: "unverified",
+    confidence: 0.2,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function clearElement(element) {
+  element.replaceChildren();
+}
+
+function appendSmall(parent, text) {
+  const small = document.createElement("small");
+  small.textContent = text;
+  parent.appendChild(small);
+  return small;
+}
+
+function appendList(parent, items) {
+  const ul = document.createElement("ul");
+  items.forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    ul.appendChild(li);
+  });
+  parent.appendChild(ul);
+}
+
+function appendEmptyState(parent, text) {
+  clearElement(parent);
+  parent.textContent = text;
+}
+
+function getPathTitles(node) {
+  const titles = [];
+  let cursor = node;
+  while (cursor) {
+    titles.unshift(cursor.title);
+    cursor = nodes.find(item => item.id === cursor.parentId);
   }
-  if (direction.includes("杀害")) {
-    return "柏林方面没有发布正式声明。几天后，国外报纸只得到互相矛盾的说法：突发疾病、意外、叛国调查。学术界第一次意识到，知识分子的名字也可以成为政权展示力量的材料。";
+  return titles;
+}
+
+async function startGeneratedNode(direction, parent) {
+  const response = await fetch('/api/generate/start', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      currentTitle: parent.title,
+      currentStory: parent.story,
+      direction,
+      pathTitles: getPathTitles(parent),
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || '任务启动失败');
   }
-  if (direction.includes("研究机构") || direction.includes("合作")) {
-    return "他被带进一间不对外存在的研究机构。表面上，政权得到了最著名的科学家；实际上，他开始用含混、拖延和错误方向保护某些人，也误导某些人。没有人确定他是在合作，还是在抵抗。";
+  return data;
+}
+
+async function getJobSnapshot(statusUrl) {
+  const response = await fetch(statusUrl);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || '任务状态读取失败');
   }
-  if (direction.includes("逃")) {
-    return "逃亡不是一条路，而是一串人名。边境官员、旧同事、陌生的记者、看似无关的船票，全都被卷进同一个夜晚。每多一个人知道，安全就少一分。";
+  return data;
+}
+
+async function pollJob(statusUrl) {
+  while (true) {
+    const snapshot = await getJobSnapshot(statusUrl);
+    currentJob = snapshot;
+    renderProgressPanel();
+    if (snapshot.status === "succeeded") return snapshot.result;
+    if (snapshot.status === "failed") {
+      throw new Error(snapshot.error?.message || "任务失败");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 700));
   }
-  return `这个想法改变了故事的方向：${direction}。系统把它识别为一个新的历史分叉，并开始寻找它会影响的人、地点和后果。`;
+}
+
+function createNode(direction, parent, generated) {
+  return {
+    id: `node-${nextNodeId++}`,
+    title: direction,
+    story: `你选择了：${direction}\n\n${generated.story}`,
+    choices: generated.choices,
+    parentId: parent.id,
+    childIds: [],
+    status: generated.status || "generated",
+    taskId: generated.task?.id,
+    briefId: generated.brief?.id,
+    artifactIds: (generated.artifacts || []).map(artifact => artifact.id),
+    historyFlags: generated.historyFlags || []
+  };
+}
+
+function appendChildNode(parent, child) {
+  return [...nodes.map(node => (
+    node.id === parent.id
+      ? { ...node, childIds: [...node.childIds, child.id] }
+      : node
+  )), child];
 }
 
 function getDepth(node) {
@@ -95,48 +231,365 @@ function getDepth(node) {
   return depth;
 }
 
+function getCardPosition(node, index) {
+  const depth = getDepth(node);
+  const siblingsBefore = nodes
+    .slice(0, index)
+    .filter(item => getDepth(item) === depth).length;
+  return {
+    left: 24 + depth * 250,
+    top: 24 + siblingsBefore * 132,
+  };
+}
+
+function setBusy(nextBusy) {
+  isGenerating = nextBusy;
+  modelStatus.textContent = nextBusy ? '模型：生成中…请勿重复点击' : '模型：待命';
+  [...document.querySelectorAll('button')].forEach(button => {
+    if (button.id !== 'backBtn') button.disabled = nextBusy;
+  });
+  customInput.disabled = nextBusy;
+  backBtn.disabled = nextBusy || !current.parentId;
+}
+
+function finishGeneration(statusText) {
+  isGenerating = false;
+  setBusy(false);
+  modelStatus.textContent = statusText;
+  render();
+}
+
+function getStatusLabel(status) {
+  if (status === "seed") return "起点";
+  if (status === "fallback") return "占位生成";
+  return "模型生成";
+}
+
+function renderPathTrail() {
+  clearElement(pathTrail);
+  getPathTitles(current).forEach((title, index, titles) => {
+    const span = document.createElement("span");
+    span.textContent = title;
+    pathTrail.appendChild(span);
+    if (index < titles.length - 1) {
+      const arrow = document.createElement("b");
+      arrow.textContent = "→";
+      pathTrail.appendChild(arrow);
+    }
+  });
+}
+
+function renderTaskPanel() {
+  if (!currentTask) {
+    appendEmptyState(taskPanel, "尚未启动任务");
+    return;
+  }
+  clearElement(taskPanel);
+  const title = document.createElement("strong");
+  title.textContent = currentTask.title;
+  taskPanel.appendChild(title);
+  appendSmall(taskPanel, `状态：${currentTask.status} · 执行：${currentTask.assignedAgent}`);
+}
+
+function renderEventLog() {
+  if (runtimeEvents.length === 0) {
+    appendEmptyState(eventLog, "等待玩家选择故事方向");
+    return;
+  }
+  clearElement(eventLog);
+  runtimeEvents.slice(-8).forEach((event) => {
+    const item = document.createElement("div");
+    item.className = "event-item";
+    const time = document.createElement("time");
+    time.textContent = new Date(event.createdAt).toLocaleTimeString("zh-CN", { hour12: false });
+    const message = document.createElement("span");
+    message.textContent = event.message;
+    item.append(time, message);
+    eventLog.appendChild(item);
+  });
+}
+
+function renderBriefPanel() {
+  if (!currentBrief) {
+    appendEmptyState(briefPanel, "生成新节点后显示简报");
+    return;
+  }
+  clearElement(briefPanel);
+  const summary = document.createElement("p");
+  summary.textContent = currentBrief.summary;
+  briefPanel.appendChild(summary);
+
+  [
+    ["关键变化", currentBrief.keyChanges || []],
+    ["风险", currentBrief.risks || []],
+    ["建议下一步", currentBrief.suggestedNextActions || []],
+  ].forEach(([title, items]) => {
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+    briefPanel.appendChild(heading);
+    appendList(briefPanel, items);
+  });
+}
+
+function getCurrentArtifacts() {
+  const ids = new Set(current.artifactIds || []);
+  if (ids.size === 0) return [];
+  return artifacts.filter((artifact) => ids.has(artifact.id));
+}
+
+function renderArtifactPanel() {
+  const currentArtifacts = getCurrentArtifacts();
+  if (currentArtifacts.length === 0) {
+    appendEmptyState(artifactPanel, "当前节点暂无新增材料");
+    return;
+  }
+
+  clearElement(artifactPanel);
+  currentArtifacts.forEach((artifact) => {
+    const card = document.createElement("article");
+    card.className = `artifact-card artifact-${artifact.type || "risk_notice"}`;
+
+    const label = document.createElement("span");
+    label.className = "artifact-type";
+    label.textContent = artifactTypeLabels[artifact.type] || artifact.type || "材料";
+
+    const title = document.createElement("strong");
+    title.textContent = artifact.title || "未命名材料";
+
+    const meta = document.createElement("small");
+    const provenance = provenanceLabels[artifact.provenance] || artifact.provenance || "未知来源";
+    const confidence = Number.isFinite(Number(artifact.confidence))
+      ? Number(artifact.confidence).toFixed(2)
+      : "未知";
+    meta.textContent = `来源：${provenance} · 可信度：${confidence}`;
+
+    const content = document.createElement("p");
+    content.textContent = artifact.content || "暂无内容";
+
+    card.append(label, title, meta, content);
+    artifactPanel.appendChild(card);
+  });
+}
+
+function createApprovalRequest(direction, historyReview) {
+  return {
+    id: `approval-${Date.now().toString(36)}`,
+    reason: historyReview?.warnings?.[0] || "该方向可能改变目标人物生存状态，并扩大历史伤害语境。",
+    options: ["继续干预", "先核验来源", "取消"],
+    pendingDirection: direction,
+  };
+}
+
+function renderAuditPanel() {
+  if (!approvalRequest) {
+    auditPanel.hidden = true;
+    clearElement(auditPanel);
+    return;
+  }
+
+  auditPanel.hidden = false;
+  clearElement(auditPanel);
+  const label = document.createElement("span");
+  label.className = "audit-label";
+  label.textContent = "审计频道提醒";
+  const title = document.createElement("strong");
+  title.textContent = "该指令需要人工确认";
+  const reason = document.createElement("p");
+  reason.textContent = approvalRequest.reason;
+  const direction = document.createElement("small");
+  direction.textContent = `待确认方向：${approvalRequest.pendingDirection}`;
+  const actions = document.createElement("div");
+  actions.className = "audit-actions";
+  approvalRequest.options.forEach((option) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = option;
+    button.onclick = () => {
+      approvalRequest = null;
+      renderAuditPanel();
+    };
+    actions.appendChild(button);
+  });
+  auditPanel.append(label, title, reason, direction, actions);
+}
+
+function renderProgressPanel() {
+  if (!currentJob) {
+    progressPanel.hidden = true;
+    return;
+  }
+
+  progressPanel.hidden = false;
+  progressStatus.textContent = `${currentJob.status} · ${stageLabels[currentJob.stage] || currentJob.stage}`;
+  currentDeskMessage.textContent = currentJob.currentDeskMessage || "值班系统正在处理。";
+
+  clearElement(stageTrack);
+  const currentIndex = stageOrder.indexOf(currentJob.stage);
+  stageOrder.forEach((stage, index) => {
+    const item = document.createElement("span");
+    item.className = "stage-pill";
+    if (stage === currentJob.stage) item.classList.add("active");
+    if (currentJob.status === "succeeded" || (currentIndex >= 0 && index < currentIndex)) item.classList.add("done");
+    item.textContent = stageLabels[stage] || stage;
+    stageTrack.appendChild(item);
+  });
+
+  clearElement(progressEvents);
+  (currentJob.events || []).slice(-6).forEach((event) => {
+    const item = document.createElement("div");
+    item.className = `progress-event event-${event.severity || "info"}`;
+    const unit = document.createElement("strong");
+    unit.textContent = event.metadata?.displayUnit || stageLabels[event.stage] || "值班系统";
+    const message = document.createElement("span");
+    message.textContent = event.studentMessage || "系统正在处理。";
+    item.append(unit, message);
+    progressEvents.appendChild(item);
+  });
+
+  clearElement(technicalEvents);
+  (currentJob.technicalEvents || []).slice(-8).forEach((event) => {
+    const item = document.createElement("div");
+    item.className = "technical-event";
+    const agent = document.createElement("code");
+    agent.textContent = event.metadata?.agent || "Runtime";
+    const message = document.createElement("span");
+    message.textContent = event.technicalMessage || event.studentMessage || "NO_MESSAGE";
+    item.append(agent, message);
+    technicalEvents.appendChild(item);
+  });
+}
+
+function renderRuntimePanels() {
+  renderTaskPanel();
+  renderEventLog();
+  renderBriefPanel();
+  renderArtifactPanel();
+  renderAuditPanel();
+  renderProgressPanel();
+}
+
 function render() {
   storyText.textContent = current.story;
-  choices.innerHTML = "";
+  renderRuntimePanels();
+  renderPathTrail();
+  const flagText = (current.historyFlags || []).join(" / ");
+  nodeMeta.textContent = `${getStatusLabel(current.status)} · 深度 ${getDepth(current)} · ${current.childIds.length} 条后续分支${flagText ? ` · ${flagText}` : ""}`;
+  clearElement(choices);
   current.choices.forEach(choice => {
     const btn = document.createElement("button");
     btn.className = "choice";
-    btn.innerHTML = `${choice.title}<small>${choice.hint}</small>`;
+    const title = document.createElement("span");
+    title.textContent = choice.title;
+    const hint = document.createElement("small");
+    hint.textContent = choice.hint;
+    btn.append(title, hint);
     btn.onclick = () => move(choice.title);
     choices.appendChild(btn);
   });
 
-  nodeList.innerHTML = "";
+  clearElement(nodeList);
   nodes.forEach((node, index) => {
     const item = document.createElement("button");
-    item.className = `node ${node === current ? "current" : ""}`;
-    item.style.marginLeft = `${getDepth(node) * 18}px`;
-    item.textContent = `${index + 1}. ${node.title}`;
+    const position = getCardPosition(node, index);
+    item.className = `node-card ${node === current ? "current" : ""}`;
+    item.style.left = `${position.left}px`;
+    item.style.top = `${position.top}px`;
+    const title = document.createElement("strong");
+    title.textContent = node.title;
+    const meta = document.createElement("small");
+    meta.textContent = `${getStatusLabel(node.status)} · 深度 ${getDepth(node)} · ${node.childIds.length} 条后续`;
+    item.append(title, meta);
     item.onclick = () => jumpTo(node.id);
     nodeList.appendChild(item);
   });
 
-  backBtn.disabled = !current.parentId;
+  backBtn.disabled = isGenerating || !current.parentId;
 }
 
-function move(direction) {
-  const newNode = generateNode(direction, current);
-  nodes = [...nodes, newNode];
-  current.childIds = [...current.childIds, newNode.id];
-  current = newNode;
-  customInput.value = "";
+async function move(direction) {
+  if (isGenerating) return;
+  runtimeEvents = [...runtimeEvents, createLocalEvent('task_created', `玩家选择方向：${direction}`)];
+  currentTask = {
+    title: `生成故事分支：${direction}`,
+    status: 'running',
+    assignedAgent: 'StoryWeaverAgent',
+  };
+  currentBrief = null;
+  currentJob = {
+    status: "queued",
+    stage: "queued",
+    currentDeskMessage: "值班系统已接入本次历史分叉任务。",
+    events: [{
+      stage: "queued",
+      severity: "info",
+      studentMessage: "值班系统已接入本次历史分叉任务。",
+      metadata: { displayUnit: "值班系统" },
+    }],
+    technicalEvents: [],
+  };
+  setBusy(true);
   render();
+  try {
+    const parent = current;
+    const started = await startGeneratedNode(direction, parent);
+    currentJob = {
+      ...currentJob,
+      jobId: started.jobId,
+      statusUrl: started.statusUrl,
+      currentDeskMessage: "值班系统正在分配叙事分析任务。",
+    };
+    renderProgressPanel();
+    const generated = await pollJob(started.statusUrl);
+    const newNode = createNode(direction, parent, generated);
+    nodes = appendChildNode(parent, newNode);
+    current = newNode;
+    currentTask = generated.task || currentTask;
+    runtimeEvents = [...runtimeEvents, ...(generated.events || [])];
+    currentBrief = generated.brief || null;
+    artifacts = [...artifacts, ...(generated.artifacts || [])];
+    approvalRequest = generated.historyReview?.requiresHumanApproval
+      ? createApprovalRequest(direction, generated.historyReview)
+      : null;
+    customInput.value = "";
+  } catch (error) {
+    const parent = current;
+    const message = error instanceof Error ? error.message : String(error);
+    const localArtifact = createLocalArtifact("risk_notice", "模型生成失败", message);
+    const newNode = createNode(direction, parent, {
+      story: `这个方向已经被系统识别为新的历史分叉。由于模型暂时不可用，故事先以占位方式继续：这条线会影响德国科学界、国际救援网络和爱因斯坦本人的处境。\n\n故事没有结束。它分裂成了新的几条线。\n\n[模型错误：${message}]`,
+      choices: fallbackChoices(),
+      status: "fallback",
+      artifacts: [localArtifact],
+      historyFlags: ["fallback_branch", "fictional_branch"],
+    });
+    nodes = appendChildNode(parent, newNode);
+    current = newNode;
+    currentTask = { ...currentTask, status: 'failed' };
+    runtimeEvents = [...runtimeEvents, createLocalEvent('task_failed', `模型生成失败：${message}`)];
+    currentBrief = {
+      summary: '模型生成失败，但系统保留了可继续探索的占位分支。',
+      keyChanges: ['当前玩家方向已被记录为新的故事节点。'],
+      risks: ['该节点内容为占位生成，不能视为历史约束内的正式分支。'],
+      suggestedNextActions: ['重试生成', '改写玩家输入', '回到上一步'],
+    };
+    artifacts = [...artifacts, localArtifact];
+    approvalRequest = null;
+    customInput.value = "";
+    finishGeneration('模型：失败，已用占位生成');
+    return;
+  }
+  finishGeneration(current.status === "fallback" ? '模型：失败，已用占位生成' : '模型：已生成');
 }
 
 function jumpTo(nodeId) {
   const target = nodes.find(node => node.id === nodeId);
-  if (!target) return;
+  if (!target || isGenerating) return;
   current = target;
   render();
 }
 
 backBtn.onclick = () => {
-  if (!current.parentId) return;
+  if (!current.parentId || isGenerating) return;
   const parent = nodes.find(node => node.id === current.parentId);
   if (!parent) return;
   current = parent;
@@ -145,8 +598,15 @@ backBtn.onclick = () => {
 
 customBtn.onclick = () => {
   const text = customInput.value.trim();
-  if (!text) return;
+  if (!text || isGenerating) return;
   move(text);
 };
+
+const startTurnBtn = document.getElementById('startTurnBtn');
+if (startTurnBtn) {
+  startTurnBtn.onclick = () => {
+    if (window.TurnCycle) window.TurnCycle.start();
+  };
+}
 
 render();

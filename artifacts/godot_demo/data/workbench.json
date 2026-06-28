@@ -1,59 +1,199 @@
 {
-  "top_bar": {
-    "product": "HISTORICAL OS",
-    "case": "EINSTEIN-1933-A",
-    "system_date": "1933-03-27",
-    "baseline_drift": "HIGH",
-    "unread": 1
-  },
-  "intel": {
-    "title": "Intel Desk / Urgent Dispatch",
-    "classification": "URGENT / BERLIN SOURCE B-17",
-    "lines": [
-      "Subject: Albert Einstein",
-      "Status: Still in Germany",
-      "Location Confidence: 0.72",
-      "Risk: Historical divergence detected"
-    ],
-    "message": "Subject E remains within German territory.\nExpected departure window has closed.\nUnknown party may have intervened.",
-    "system_note": "In the baseline history, Albert Einstein did not return to Germany after Hitler's rise in 1933.\nCurrent timeline indicators suggest he remains near Berlin / Caputh.\n\nPlease determine whether this is source error, archive inconsistency, deliberate misinformation, or timeline divergence.",
-    "suggestion": "Before taking direct action, verify both source credibility and baseline records."
-  },
-  "timeline": [
-    "1933-01-30  Hitler appointed Chancellor",
-    "1933-03-XX  Einstein expected not to return to Germany",
-    "1933-03-27  [ANOMALY] Subject E still traced near Berlin",
-    "1933-04-07  Law for the Restoration of the Professional Civil Service",
-    "1933-10-XX  Baseline: Einstein joins Princeton IAS"
-  ],
-  "map": [
-    "Berlin",
-    "Caputh",
-    "Antwerp",
-    "De Haan",
-    "Princeton"
-  ],
-  "archives": [
-    {"name": "Prussian Academy resignation record", "status": "baseline only"},
-    {"name": "Caputh property search report", "status": "current timeline conflict"},
-    {"name": "Passport / border crossing record", "status": "missing"},
-    {"name": "Newspaper clipping: anti-Einstein campaign", "status": "unverified"},
-    {"name": "Institute for Advanced Study correspondence", "status": "baseline only"}
-  ],
-  "risk": [
-    "Source B-17 Reliability: Medium",
-    "Signal Integrity: Unknown",
-    "Propaganda Risk: High",
-    "Police Surveillance Risk: High",
-    "International Rescue Network: Disrupted",
-    "Ethical Sensitivity: Severe"
-  ],
-  "historical_notice": "Historical sensitivity notice:\nThis case involves antisemitic persecution, state violence, exile, and academic purges. Treat all interventions as high-risk.",
-  "feedback": {
-    "timeline": "Timeline focus: March-April 1933 divergence window highlighted.",
-    "map": "Map trace: Berlin / Caputh unresolved corridor marked for review.",
-    "archives": "Archives query: baseline records and missing border evidence queued.",
-    "source": "Source B-17 verification: reliability medium, propaganda risk high.",
-    "directive": "Field directive draft opened. Intervention remains locked pending source review."
+  "default_language": "zh",
+  "languages": {
+    "zh": {
+      "top_bar": {
+        "product": "历史异常值班台",
+        "subtitle": "Historical OS",
+        "case_label": "案件",
+        "system_date_label": "系统日期",
+        "baseline_drift_label": "世界线偏移",
+        "unread_label": "未读",
+        "audit_label": "审计频道：开启",
+        "case": "EINSTEIN-1933-A",
+        "system_date": "1933-03-27",
+        "baseline_drift": "高",
+        "unread": 1
+      },
+      "alert": {
+        "level": "异常警报",
+        "title": "第一案：爱因斯坦仍在德国",
+        "summary": "目标未按基准历史离境。建议先核验来源与基准档案，再决定是否干预。"
+      },
+      "windows": {
+        "timeline": "时间线 / 基准对照",
+        "intel": "情报台 / 紧急派报",
+        "map": "地图 / 相关地点",
+        "archives": "档案库 / 待核验记录",
+        "risk": "风险与来源可信度"
+      },
+      "labels": {
+        "message": "情报正文",
+        "system_note": "系统备注",
+        "suggestion": "弱推荐提示",
+        "focus": "当前焦点",
+        "initial_focus": "紧急派报未读",
+        "timeline_heading": "检测到基准历史不一致",
+        "map_heading": "相关地点",
+        "baseline_route": "基准路线",
+        "current_trace": "当前追踪",
+        "language_button": "EN"
+      },
+      "intel": {
+        "classification": "紧急 / 柏林来源 B-17",
+        "lines": [
+          "对象：阿尔伯特·爱因斯坦",
+          "状态：仍在德国境内",
+          "位置置信度：0.72",
+          "风险：检测到历史分歧"
+        ],
+        "message": "对象 E 仍处于德国境内。\n预期离境窗口已经关闭。\n可能存在未知力量介入。",
+        "system_note": "在基准历史中，1933 年希特勒上台后，阿尔伯特·爱因斯坦没有返回德国。\n当前世界线指标显示，他仍可能停留在柏林 / 卡普特附近。\n\n请判断这究竟是来源错误、档案不一致、蓄意误导，还是世界线分歧。",
+        "suggestion": "直接干预前，先核验来源可信度与基准档案。"
+      },
+      "actions": [
+        {"label": "查看时间线", "window": "timeline", "feedback": "timeline"},
+        {"label": "打开地图轨迹", "window": "map", "feedback": "map"},
+        {"label": "搜索档案", "window": "archives", "feedback": "archives"},
+        {"label": "核验 B-17 来源", "window": "risk", "feedback": "source"},
+        {"label": "发送外勤指令", "window": "intel", "feedback": "directive"}
+      ],
+      "timeline": [
+        "1933-01-30  希特勒被任命为德国总理",
+        "1933-03-XX  基准：爱因斯坦预计不会返回德国",
+        "1933-03-27  [异常] 对象 E 仍被追踪至柏林附近",
+        "1933-04-07  职业公务员法通过，学术清洗加剧",
+        "1933-10-XX  基准：爱因斯坦加入普林斯顿高等研究院"
+      ],
+      "map": {
+        "places": ["柏林", "卡普特", "安特卫普", "德哈恩", "普林斯顿"],
+        "baseline_route": "德国 -> 比利时 -> 英国 -> 美国",
+        "current_trace": "柏林 / 卡普特走廊尚未排除"
+      },
+      "archives": [
+        {"name": "普鲁士科学院辞职记录", "status": "仅基准历史存在"},
+        {"name": "卡普特住宅搜查报告", "status": "与当前世界线冲突"},
+        {"name": "护照 / 边境通行记录", "status": "缺失"},
+        {"name": "报纸剪报：反爱因斯坦运动", "status": "未核验"},
+        {"name": "普林斯顿高等研究院通信", "status": "仅基准历史存在"}
+      ],
+      "risk": [
+        "来源 B-17 可靠性：中",
+        "信号完整性：未知",
+        "宣传污染风险：高",
+        "警察监控风险：高",
+        "国际救援网络：受扰动",
+        "伦理敏感度：严重"
+      ],
+      "historical_notice": "历史敏感性提示：\n本案涉及反犹迫害、国家暴力、流亡与学术清洗。所有干预都应视为高风险。",
+      "feedback": {
+        "timeline": "时间线焦点：已标记 1933 年 3-4 月分歧窗口。",
+        "map": "地图轨迹：柏林 / 卡普特走廊进入复核。",
+        "archives": "档案检索：基准记录与缺失边境证据已排入队列。",
+        "source": "来源 B-17 核验：可靠性中等，宣传污染风险高。",
+        "directive": "外勤指令草稿已打开。来源复核完成前，干预仍处于锁定状态。"
+      },
+      "notification_ready": "系统就绪。紧急派报已载入情报台。",
+      "minimized_suffix": "已最小化。",
+      "restored_suffix": "已恢复。",
+      "selected_suffix": "已选择。"
+    },
+    "en": {
+      "top_bar": {
+        "product": "Historical Anomaly Desk",
+        "subtitle": "Historical OS",
+        "case_label": "Case",
+        "system_date_label": "System Date",
+        "baseline_drift_label": "Baseline Drift",
+        "unread_label": "Unread",
+        "audit_label": "Audit Channel: ACTIVE",
+        "case": "EINSTEIN-1933-A",
+        "system_date": "1933-03-27",
+        "baseline_drift": "HIGH",
+        "unread": 1
+      },
+      "alert": {
+        "level": "ANOMALY ALERT",
+        "title": "First case: Einstein remains in Germany",
+        "summary": "Subject missed the baseline departure window. Verify source and baseline records before intervention."
+      },
+      "windows": {
+        "timeline": "Timeline / Baseline Comparison",
+        "intel": "Intel Desk / Urgent Dispatch",
+        "map": "Map / Relevant Locations",
+        "archives": "Archives / Records to Verify",
+        "risk": "Risk & Source Credibility"
+      },
+      "labels": {
+        "message": "Message",
+        "system_note": "System Note",
+        "suggestion": "Soft Recommendation",
+        "focus": "Current Focus",
+        "initial_focus": "Urgent dispatch unread",
+        "timeline_heading": "Baseline mismatch detected",
+        "map_heading": "Relevant Locations",
+        "baseline_route": "Baseline Route",
+        "current_trace": "Current Trace",
+        "language_button": "中文"
+      },
+      "intel": {
+        "classification": "URGENT / BERLIN SOURCE B-17",
+        "lines": [
+          "Subject: Albert Einstein",
+          "Status: Still in Germany",
+          "Location Confidence: 0.72",
+          "Risk: Historical divergence detected"
+        ],
+        "message": "Subject E remains within German territory.\nExpected departure window has closed.\nUnknown party may have intervened.",
+        "system_note": "In the baseline history, Albert Einstein did not return to Germany after Hitler's rise in 1933.\nCurrent timeline indicators suggest he remains near Berlin / Caputh.\n\nPlease determine whether this is source error, archive inconsistency, deliberate misinformation, or timeline divergence.",
+        "suggestion": "Before direct action, verify both source credibility and baseline records."
+      },
+      "actions": [
+        {"label": "Open Timeline", "window": "timeline", "feedback": "timeline"},
+        {"label": "Open Map Trace", "window": "map", "feedback": "map"},
+        {"label": "Search Archives", "window": "archives", "feedback": "archives"},
+        {"label": "Verify Source B-17", "window": "risk", "feedback": "source"},
+        {"label": "Send Field Directive", "window": "intel", "feedback": "directive"}
+      ],
+      "timeline": [
+        "1933-01-30  Hitler appointed Chancellor",
+        "1933-03-XX  Baseline: Einstein expected not to return to Germany",
+        "1933-03-27  [ANOMALY] Subject E still traced near Berlin",
+        "1933-04-07  Law for the Restoration of the Professional Civil Service",
+        "1933-10-XX  Baseline: Einstein joins Princeton IAS"
+      ],
+      "map": {
+        "places": ["Berlin", "Caputh", "Antwerp", "De Haan", "Princeton"],
+        "baseline_route": "Germany -> Belgium -> UK -> USA",
+        "current_trace": "Berlin / Caputh corridor unresolved"
+      },
+      "archives": [
+        {"name": "Prussian Academy resignation record", "status": "baseline only"},
+        {"name": "Caputh property search report", "status": "current timeline conflict"},
+        {"name": "Passport / border crossing record", "status": "missing"},
+        {"name": "Newspaper clipping: anti-Einstein campaign", "status": "unverified"},
+        {"name": "Institute for Advanced Study correspondence", "status": "baseline only"}
+      ],
+      "risk": [
+        "Source B-17 Reliability: Medium",
+        "Signal Integrity: Unknown",
+        "Propaganda Risk: High",
+        "Police Surveillance Risk: High",
+        "International Rescue Network: Disrupted",
+        "Ethical Sensitivity: Severe"
+      ],
+      "historical_notice": "Historical sensitivity notice:\nThis case involves antisemitic persecution, state violence, exile, and academic purges. Treat all interventions as high-risk.",
+      "feedback": {
+        "timeline": "Timeline focus: March-April 1933 divergence window highlighted.",
+        "map": "Map trace: Berlin / Caputh unresolved corridor marked for review.",
+        "archives": "Archives query: baseline records and missing border evidence queued.",
+        "source": "Source B-17 verification: reliability medium, propaganda risk high.",
+        "directive": "Field directive draft opened. Intervention remains locked pending source review."
+      },
+      "notification_ready": "System ready. Unread urgent dispatch loaded into Intel Desk.",
+      "minimized_suffix": "minimized.",
+      "restored_suffix": "restored.",
+      "selected_suffix": "selected."
+    }
   }
 }

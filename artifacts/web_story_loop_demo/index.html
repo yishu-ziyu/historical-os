@@ -3,47 +3,144 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>网状历史故事书 Demo</title>
+  <title>历史异常值班台 · 1933</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <main class="app">
-    <section class="hero">
-      <div class="eyebrow">LLM Story Loop Demo v0.1 / 模拟生成</div>
-      <h1>1933 年，爱因斯坦没有离开德国。</h1>
-      <p>
-        在真实历史中，爱因斯坦没有回到纳粹德国。
-        但这条世界线里，他仍然留在柏林附近。
-        你要决定接下来发生什么。
-      </p>
+  <div class="grain"></div>
+
+  <main class="desk">
+
+    <section id="archiveCabinet" class="archive-cabinet">
+      <button id="archiveToggle" type="button" class="archive-toggle" aria-expanded="false">
+        <span class="archive-icon">📁</span>
+        <span class="archive-label">档案柜</span>
+        <span class="archive-count">11</span>
+      </button>
+
+      <div id="archivePanel" class="archive-panel" hidden>
+        <header class="archive-header">
+          <span class="desk-stamp">ARCHIV CABINET</span>
+          <h2>值班台档案索引</h2>
+          <p class="archive-sub">柏林物理学会 · 1933 年相关档案</p>
+        </header>
+
+        <details class="archive-folder" open>
+          <summary>📁 关键人物</summary>
+          <ul class="archive-files">
+            <li><button type="button" class="archive-file" data-archive="einstein-1921">
+              <span class="file-icon">📷</span><span class="file-name">爱因斯坦 1921 年肖像</span></button></li>
+            <li><button type="button" class="archive-file" data-archive="planck-1910">
+              <span class="file-icon">📷</span><span class="file-name">普朗克 c.1910 肖像</span></button></li>
+            <li><button type="button" class="archive-file" data-archive="solvay-1911">
+              <span class="file-icon">📷</span><span class="file-name">1911 年索尔维会议合影</span></button></li>
+          </ul>
+        </details>
+
+        <details class="archive-folder">
+          <summary>📁 学术机构</summary>
+          <ul class="archive-files">
+            <li><button type="button" class="archive-file" data-archive="dpg-charter">
+              <span class="file-icon">📜</span><span class="file-name">柏林物理学会章程 1933</span></button></li>
+            <li><button type="button" class="archive-file" data-archive="kaiser-wilhelm">
+              <span class="file-icon">📜</span><span class="file-name">威廉皇帝物理研究所 1933</span></button></li>
+            <li><button type="button" class="archive-file" data-archive="ptr-record">
+              <span class="file-icon">📜</span><span class="file-name">帝国物理技术局 1933</span></button></li>
+          </ul>
+        </details>
+
+        <details class="archive-folder">
+          <summary>📁 时事报纸</summary>
+          <ul class="archive-files">
+            <li><button type="button" class="archive-file" data-archive="newspaper-april1">
+              <span class="file-icon">📰</span><span class="file-name">《新柏林日报》1933.04.01 头版</span></button></li>
+            <li><button type="button" class="archive-file" data-archive="newspaper-reichstag">
+              <span class="file-icon">📰</span><span class="file-name">《Vossische Zeitung》1933.03 国会纵火案</span></button></li>
+          </ul>
+        </details>
+
+        <details class="archive-folder">
+          <summary>📁 内部文件</summary>
+          <ul class="archive-files">
+            <li><button type="button" class="archive-file" data-archive="ops-manual">
+              <span class="file-icon">📋</span><span class="file-name">值班台操作手册</span></button></li>
+            <li><button type="button" class="archive-file" data-archive="intel-template">
+              <span class="file-icon">📋</span><span class="file-name">情报分析模板</span></button></li>
+            <li><button type="button" class="archive-file" data-archive="audit-log">
+              <span class="file-icon">📋</span><span class="file-name">审计记录样例</span></button></li>
+          </ul>
+        </details>
+
+        <footer class="archive-footer">
+          <span>资料来源：Wikimedia Commons / CC-BY-SA · Public Domain</span>
+        </footer>
+      </div>
     </section>
 
-    <section class="layout">
-      <article class="story-card">
-        <div class="card-header">
-          <span>当前故事节点</span>
-          <button id="backBtn" disabled>回到上一步</button>
-        </div>
-        <div id="storyText" class="story-text"></div>
-        <div class="input-box">
-          <label for="customInput">或者写下你的版本</label>
-          <textarea id="customInput" placeholder="例如：爱因斯坦假装合作，但暗中帮助犹太科学家逃亡。"></textarea>
-          <button id="customBtn">让故事沿这个方向生长</button>
-        </div>
-      </article>
+    <header class="desk-header">
+      <div class="desk-brand">
+        <span class="desk-stamp">INTELLIGENCE DESK</span>
+        <h1>历史异常值班台</h1>
+        <p class="desk-sub">柏林 · 1933 年 10 月 · 爱因斯坦未离开德国</p>
+      </div>
+      <div class="desk-status">
+        <span id="turnStageBadge" class="stage-badge" data-severity="idle">待命</span>
+        <span class="turn-counter">回合 <em id="turnCounter">0</em></span>
+      </div>
+    </header>
 
-      <aside class="branch-panel">
-        <h2>你想看哪条线？</h2>
-        <div id="choices" class="choices"></div>
-      </aside>
+    <section id="stageTrack" class="stage-track">
+      <div class="stage-step" data-stage="briefing">
+        <span class="step-num">01</span>
+        <span class="step-name">情报卡</span>
+      </div>
+      <div class="stage-line"></div>
+      <div class="stage-step" data-stage="situation">
+        <span class="step-num">02</span>
+        <span class="step-name">态势分析</span>
+      </div>
+      <div class="stage-line"></div>
+      <div class="stage-step" data-stage="aftermath">
+        <span class="step-num">03</span>
+        <span class="step-name">推演报告</span>
+      </div>
     </section>
 
-    <section class="network">
-      <h2>故事网</h2>
-      <div id="nodeList" class="node-list"></div>
+    <section id="briefingSection" class="card intel-card" hidden></section>
+    <section id="situationSection" class="card situation-room" hidden></section>
+    <section id="aftermathSection" class="card aftermath" hidden></section>
+
+    <section id="turnEmptyState" class="empty-state">
+      <div class="empty-stamp">CLASSIFIED</div>
+      <h2>一条异常已经进入值班队列</h2>
+      <p>1933 年 10 月，爱因斯坦未离开德国。<br/>真实历史里他本该避开纳粹德国——但这条世界线里，最后的目击记录仍停在柏林。</p>
+      <p class="empty-hint">你的任务是判断：这条裂缝往哪里生长。</p>
+      <button id="startTurnBtn" type="button" class="primary-btn">启动值班</button>
     </section>
+
+    <footer class="desk-footer">
+      <span>HISTORICAL RUNTIME v0.4</span>
+      <span id="footerStatus">系统就绪</span>
+    </footer>
   </main>
 
-  <script src="./script.js"></script>
+  <dialog id="archiveModal" class="archive-modal">
+    <div class="modal-header">
+      <span class="modal-classification">CLASSIFIED</span>
+      <button type="button" class="modal-close" data-close="archiveModal">×</button>
+    </div>
+    <div class="modal-body">
+      <h2 id="modalTitle">档案标题</h2>
+      <div id="modalMeta" class="modal-meta"></div>
+      <div id="modalImage" class="modal-image"></div>
+      <div id="modalDescription" class="modal-description"></div>
+    </div>
+    <footer class="modal-footer">
+      <span id="modalProvenance">来源</span>
+      <button type="button" class="modal-close-btn" data-close="archiveModal">关闭</button>
+    </footer>
+  </dialog>
+
+  <script src="./turn_cycle.js"></script>
 </body>
 </html>

@@ -18,6 +18,7 @@ var data: Dictionary
 var window_layer: Control
 var notification_label: Label
 var focus_label: Label
+var language := "zh"
 var z_counter := 10
 var windows := {}
 
@@ -38,6 +39,11 @@ func _load_data() -> void:
 		data = {}
 		return
 	data = parsed
+	language = data.get("default_language", "zh")
+
+func _active_data() -> Dictionary:
+	var languages: Dictionary = data.get("languages", {})
+	return languages.get(language, {})
 
 func _apply_theme() -> void:
 	var theme := Theme.new()
@@ -80,10 +86,11 @@ func _build_ui() -> void:
 
 	_add_grid_background()
 	_add_top_bar()
+	_add_alert_banner()
 
 	window_layer = Control.new()
 	window_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	window_layer.offset_top = 42
+	window_layer.offset_top = 88
 	add_child(window_layer)
 
 	_add_default_windows()
@@ -119,28 +126,81 @@ func _add_top_bar() -> void:
 	margin.add_child(row)
 
 	var top_data: Dictionary = data.get("top_bar", {})
-	_add_top_label(row, top_data.get("product", "HISTORICAL OS"), COLOR_TEXT, 18)
+	var screen: Dictionary = _active_data()
+	top_data = screen.get("top_bar", {})
+	var labels: Dictionary = screen.get("labels", {})
+	_add_top_label(row, top_data.get("product", "Historical OS"), COLOR_TEXT, 18)
+	_add_top_label(row, top_data.get("subtitle", ""), COLOR_MUTED, 13)
 	_add_status_dot(row, COLOR_GREEN)
-	_add_top_label(row, "Case: " + top_data.get("case", "UNKNOWN"), COLOR_MUTED, 15)
-	_add_top_label(row, "System Date: " + top_data.get("system_date", "--"), COLOR_MUTED, 15)
-	_add_top_label(row, "Baseline Drift: " + top_data.get("baseline_drift", "LOW"), COLOR_AMBER, 15)
-	_add_top_label(row, "Unread: " + str(top_data.get("unread", 0)), COLOR_RED, 15)
+	_add_top_label(row, top_data.get("case_label", "Case") + ": " + top_data.get("case", "UNKNOWN"), COLOR_MUTED, 15)
+	_add_top_label(row, top_data.get("system_date_label", "System Date") + ": " + top_data.get("system_date", "--"), COLOR_MUTED, 15)
+	_add_top_label(row, top_data.get("baseline_drift_label", "Baseline Drift") + ": " + top_data.get("baseline_drift", "LOW"), COLOR_AMBER, 15)
+	_add_top_label(row, top_data.get("unread_label", "Unread") + ": " + str(int(top_data.get("unread", 0))), COLOR_RED, 15)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
-	_add_top_label(row, "Audit Channel: ACTIVE", COLOR_BLUE, 15)
+	_add_top_label(row, top_data.get("audit_label", "Audit Channel: ACTIVE"), COLOR_BLUE, 15)
+
+	var language_button := Button.new()
+	language_button.text = labels.get("language_button", "EN")
+	language_button.custom_minimum_size = Vector2(58, 28)
+	language_button.pressed.connect(_toggle_language)
+	row.add_child(language_button)
+
+func _add_alert_banner() -> void:
+	var screen: Dictionary = _active_data()
+	var alert: Dictionary = screen.get("alert", {})
+	var banner := PanelContainer.new()
+	banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	banner.offset_top = 42
+	banner.custom_minimum_size = Vector2(0, 44)
+	banner.add_theme_stylebox_override("panel", _style(Color("#15110b"), Color("#5f3e19"), 0, 1))
+	add_child(banner)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 22)
+	margin.add_theme_constant_override("margin_right", 22)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	banner.add_child(margin)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	margin.add_child(row)
+	_add_top_label(row, alert.get("level", "ANOMALY ALERT"), COLOR_RED, 15)
+	_add_top_label(row, alert.get("title", ""), COLOR_AMBER, 16)
+	var summary := Label.new()
+	summary.text = alert.get("summary", "")
+	summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	summary.add_theme_color_override("font_color", COLOR_TEXT)
+	summary.add_theme_font_size_override("font_size", 14)
+	row.add_child(summary)
+
+func _toggle_language() -> void:
+	language = "en" if language == "zh" else "zh"
+	_rebuild_ui()
+
+func _rebuild_ui() -> void:
+	for child in get_children():
+		child.queue_free()
+	windows.clear()
+	z_counter = 10
+	focus_label = null
+	notification_label = null
+	_build_ui()
 
 func _add_default_windows() -> void:
 	var viewport_size := get_viewport_rect().size
 	var w := viewport_size.x
-	var h := viewport_size.y - 42
+	var h := viewport_size.y - 88
+	var titles: Dictionary = _active_data().get("windows", {})
 
-	windows["timeline"] = _create_window("Timeline / Baseline vs Current", Vector2(26, 28), Vector2(w * 0.24, h * 0.55), _timeline_content())
-	windows["intel"] = _create_window("Intel Desk / Urgent Dispatch", Vector2(w * 0.27, 28), Vector2(w * 0.46, h * 0.55), _intel_content())
-	windows["map"] = _create_window("Map / Relevant Locations", Vector2(w * 0.75, 28), Vector2(w * 0.23, h * 0.55), _map_content())
-	windows["archives"] = _create_window("Archives / Records to Verify", Vector2(26, h * 0.62), Vector2(w * 0.56, h * 0.30), _archives_content())
-	windows["risk"] = _create_window("Risk & Source Credibility", Vector2(w * 0.60, h * 0.62), Vector2(w * 0.38, h * 0.30), _risk_content())
+	windows["timeline"] = _create_window(titles.get("timeline", "Timeline"), Vector2(26, 24), Vector2(w * 0.24, h * 0.54), _timeline_content())
+	windows["intel"] = _create_window(titles.get("intel", "Intel Desk"), Vector2(w * 0.27, 24), Vector2(w * 0.46, h * 0.54), _intel_content())
+	windows["map"] = _create_window(titles.get("map", "Map"), Vector2(w * 0.75, 24), Vector2(w * 0.23, h * 0.54), _map_content())
+	windows["archives"] = _create_window(titles.get("archives", "Archives"), Vector2(26, h * 0.62), Vector2(w * 0.56, h * 0.30), _archives_content())
+	windows["risk"] = _create_window(titles.get("risk", "Risk"), Vector2(w * 0.60, h * 0.62), Vector2(w * 0.38, h * 0.30), _risk_content())
 
 func _add_notification_area() -> void:
 	var area := PanelContainer.new()
@@ -160,7 +220,7 @@ func _add_notification_area() -> void:
 	area.add_child(margin)
 
 	notification_label = Label.new()
-	notification_label.text = "System ready. Unread urgent dispatch loaded into Intel Desk."
+	notification_label.text = _active_data().get("notification_ready", "System ready.")
 	notification_label.add_theme_color_override("font_color", COLOR_GREEN)
 	notification_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	margin.add_child(notification_label)
@@ -235,65 +295,72 @@ func _create_window(title: String, pos: Vector2, size: Vector2, content: Control
 		panel.custom_minimum_size.y = 40 if not content_margin.visible else size.y
 		panel.size.y = panel.custom_minimum_size.y
 		minimize.text = "+" if not content_margin.visible else "−"
-		_set_feedback(title + " minimized." if not content_margin.visible else title + " restored.")
+		var screen: Dictionary = _active_data()
+		var suffix: String = screen.get("minimized_suffix", "minimized.") if not content_margin.visible else screen.get("restored_suffix", "restored.")
+		_set_feedback(title + " " + suffix)
 	)
 	return panel
 
 func _intel_content() -> Control:
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 10)
-	var intel: Dictionary = data.get("intel", {})
+	var screen: Dictionary = _active_data()
+	var labels: Dictionary = screen.get("labels", {})
+	var intel: Dictionary = screen.get("intel", {})
 
 	_add_section_label(root, intel.get("classification", "URGENT"), COLOR_AMBER, 17)
 	for line in intel.get("lines", []):
 		_add_body_label(root, line, COLOR_TEXT, 15)
 	_add_separator(root)
-	_add_body_label(root, "Message:\n" + intel.get("message", ""), COLOR_TEXT, 15)
+	_add_body_label(root, labels.get("message", "Message") + ":\n" + intel.get("message", ""), COLOR_TEXT, 15)
 	_add_separator(root)
-	_add_body_label(root, "System Note:\n" + intel.get("system_note", ""), COLOR_MUTED, 14)
-	_add_body_label(root, "Suggestion:\n" + intel.get("suggestion", ""), COLOR_AMBER, 14)
+	_add_body_label(root, labels.get("system_note", "System Note") + ":\n" + intel.get("system_note", ""), COLOR_MUTED, 14)
+	_add_body_label(root, labels.get("suggestion", "Suggestion") + ":\n" + intel.get("suggestion", ""), COLOR_AMBER, 14)
 
 	focus_label = Label.new()
-	focus_label.text = "Current Focus: Urgent dispatch unread"
+	focus_label.text = labels.get("focus", "Current Focus") + ": " + labels.get("initial_focus", "Urgent dispatch unread")
 	focus_label.add_theme_color_override("font_color", COLOR_BLUE)
 	root.add_child(focus_label)
 
 	var buttons := GridContainer.new()
-	buttons.columns = 2
+	buttons.columns = 3
 	buttons.add_theme_constant_override("h_separation", 8)
 	buttons.add_theme_constant_override("v_separation", 8)
 	root.add_child(buttons)
-	_add_action_button(buttons, "Open Timeline", "timeline", "timeline")
-	_add_action_button(buttons, "Open Map Trace", "map", "map")
-	_add_action_button(buttons, "Search Archives", "archives", "archives")
-	_add_action_button(buttons, "Verify Source B-17", "risk", "source")
-	_add_action_button(buttons, "Send Field Directive", "intel", "directive")
+	for action in screen.get("actions", []):
+		_add_action_button(buttons, action.get("label", ""), action.get("window", "intel"), action.get("feedback", "directive"))
 	return root
 
 func _timeline_content() -> Control:
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 8)
-	_add_section_label(root, "Baseline mismatch detected", COLOR_AMBER, 15)
-	for item in data.get("timeline", []):
-		var color := COLOR_AMBER if String(item).contains("[ANOMALY]") else COLOR_TEXT
+	var screen: Dictionary = _active_data()
+	var labels: Dictionary = screen.get("labels", {})
+	_add_section_label(root, labels.get("timeline_heading", "Baseline mismatch detected"), COLOR_AMBER, 15)
+	for item in screen.get("timeline", []):
+		var item_text := String(item)
+		var color := COLOR_AMBER if item_text.contains("[ANOMALY]") or item_text.contains("[异常]") else COLOR_TEXT
 		_add_body_label(root, item, color, 14)
 	return root
 
 func _map_content() -> Control:
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 8)
-	_add_section_label(root, "Relevant Locations", COLOR_BLUE, 15)
-	for place in data.get("map", []):
+	var screen: Dictionary = _active_data()
+	var labels: Dictionary = screen.get("labels", {})
+	var map_data: Dictionary = screen.get("map", {})
+	_add_section_label(root, labels.get("map_heading", "Relevant Locations"), COLOR_BLUE, 15)
+	for place in map_data.get("places", []):
 		_add_body_label(root, "□ " + place, COLOR_TEXT, 15)
 	_add_separator(root)
-	_add_body_label(root, "Baseline Route:\nGermany → Belgium → UK → USA", COLOR_MUTED, 14)
-	_add_body_label(root, "Current Trace:\nBerlin / Caputh unresolved", COLOR_AMBER, 14)
+	_add_body_label(root, labels.get("baseline_route", "Baseline Route") + ":\n" + map_data.get("baseline_route", ""), COLOR_MUTED, 14)
+	_add_body_label(root, labels.get("current_trace", "Current Trace") + ":\n" + map_data.get("current_trace", ""), COLOR_AMBER, 14)
 	return root
 
 func _archives_content() -> Control:
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 8)
-	for record in data.get("archives", []):
+	for record in _active_data().get("archives", []):
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		root.add_child(row)
@@ -311,24 +378,28 @@ func _archives_content() -> Control:
 func _risk_content() -> Control:
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 7)
-	for item in data.get("risk", []):
-		var color := COLOR_RED if String(item).contains("High") or String(item).contains("Severe") else COLOR_TEXT
+	var screen: Dictionary = _active_data()
+	for item in screen.get("risk", []):
+		var item_text := String(item)
+		var color := COLOR_RED if item_text.contains("High") or item_text.contains("Severe") or item_text.contains("高") or item_text.contains("严重") else COLOR_TEXT
 		_add_body_label(root, item, color, 14)
 	_add_separator(root)
-	_add_body_label(root, data.get("historical_notice", ""), COLOR_RED, 13)
+	_add_body_label(root, screen.get("historical_notice", ""), COLOR_RED, 13)
 	return root
 
 func _add_action_button(parent: Control, label: String, window_id: String, feedback_id: String) -> void:
 	var button := Button.new()
 	button.text = label
-	button.custom_minimum_size = Vector2(0, 40)
+	button.custom_minimum_size = Vector2(0, 34)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(func():
 		_focus_window(window_id)
-		var feedback: Dictionary = data.get("feedback", {})
-		_set_feedback(feedback.get(feedback_id, label + " selected."))
+		var screen: Dictionary = _active_data()
+		var feedback: Dictionary = screen.get("feedback", {})
+		_set_feedback(feedback.get(feedback_id, label + " " + screen.get("selected_suffix", "selected.")))
 		if focus_label:
-			focus_label.text = "Current Focus: " + label
+			var labels: Dictionary = screen.get("labels", {})
+			focus_label.text = labels.get("focus", "Current Focus") + ": " + label
 	)
 	parent.add_child(button)
 
@@ -393,8 +464,8 @@ func _style(bg_color: Color, border_color: Color, radius: int, border_width: int
 	return style
 
 func _status_color(status: String) -> Color:
-	if status.contains("conflict") or status.contains("missing"):
+	if status.contains("conflict") or status.contains("missing") or status.contains("冲突") or status.contains("缺失"):
 		return COLOR_RED
-	if status.contains("unverified"):
+	if status.contains("unverified") or status.contains("未核验"):
 		return COLOR_AMBER
 	return COLOR_BLUE
