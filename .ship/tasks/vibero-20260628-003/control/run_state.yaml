@@ -1,0 +1,11 @@
+taskId: vibero-20260628-003
+status: done
+iteration: 1
+stopReason: success
+startedAt: "2026-06-28T16:00:00Z"
+completedAt: "2026-06-28T16:05:00Z"
+notes:
+  - "改 1 行 cwd + 新增 2 个 import"
+  - "从 /tmp 跑 11/11 通过验证可移植性"
+  - "原路径跑也 11/11 通过验证向后兼容"
+  - "未跑全量 suite(本 task 范围限定此文件)"
