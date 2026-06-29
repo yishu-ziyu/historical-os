@@ -5,11 +5,13 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 
 const PORT = 8991;
 const BASE = `http://127.0.0.1:${PORT}`;
 const server = spawn('node', ['server.mjs'], {
-  cwd: '/Users/mahaoxuan/Desktop/黑客松/架空历史故事游戏/artifacts/web_story_loop_demo',
+  cwd: dirname(fileURLToPath(import.meta.url)),
   env: { ...process.env, PORT: String(PORT), MODEL_REQUEST_TIMEOUT_MS: '1' },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
