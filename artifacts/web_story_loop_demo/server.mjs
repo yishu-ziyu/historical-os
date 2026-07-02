@@ -58,11 +58,13 @@ function isMiniMaxProvider(env) {
 // 对应当前登录的 auths：antigravity / codex-pro / kimi。
 // 优先用 JSON schema 能力强 + 响应稳定的模型。
 const MODEL_FALLBACK_CHAIN = [
-  'claude-sonnet-4-6',           // antigravity，JSON schema 强，主力
-  'claude-haiku-4-5-20251001',   // antigravity 后端 GLM，稳定备用
-  'gpt-5.5',                     // codex-pro
-  'gpt-5.4',                     // codex-pro
-  'gemini-3-flash',              // antigravity
+  'claude-opus-4-8',             // 当前本机会话模型，实测能返回 text JSON
+  'gpt-5.4',                     // codex-pro，实测能稳定返回 text JSON
+  'gpt-5.4-mini',                // codex-pro，轻量备用
+  'gpt-5.5',                     // codex-pro，质量高但可能慢
+  'claude-sonnet-4-6',           // antigravity，可能只返回 thinking
+  'claude-haiku-4-5-20251001',   // antigravity 后端 GLM，可能只返回 thinking
+  'gemini-3-flash',              // antigravity，可能只返回 thinking
   'kimi-k2',                     // kimi
 ];
 
@@ -70,6 +72,9 @@ const MODEL_FALLBACK_CHAIN = [
 let cachedWorkingModel = null;
 let lastProbeAt = 0;
 const PROBE_COOLDOWN_MS = 60_000;  // 失败后 60 秒才重新探测
+
+const MAX_RETRIES = 2;             // 每次 LLM 调用最多 2 次重试
+const RETRY_BASE_DELAY_MS = 1500;  // 第一次重试等待 1.5 秒，第二次 3 秒
 
 async function probeModel(baseUrl, token, model, timeoutMs) {
   const controller = new AbortController();
@@ -84,7 +89,7 @@ async function probeModel(baseUrl, token, model, timeoutMs) {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 16,
+        max_tokens: 256,
         messages: [{ role: 'user', content: 'ping' }],
       }),
       signal: controller.signal,
@@ -93,8 +98,11 @@ async function probeModel(baseUrl, token, model, timeoutMs) {
     const data = await response.json();
     if (data.error) return { ok: false, reason: data.error };
     if (data.Message) return { ok: false, reason: data.Message };
+    // round 052: thinking 模型（如 step-3.7-flash）小 max_tokens 时 thinking 占满预算，
+    // text 为空。thinking block 也证明模型活着，真实调用用更大 max_tokens 能拿到 text。
     const hasText = data.content?.some((p) => p.type === 'text' && p.text);
-    return { ok: !!hasText, reason: hasText ? null : 'empty content' };
+    const hasThinking = data.content?.some((p) => p.type === 'thinking');
+    return { ok: !!(hasText || hasThinking), reason: (hasText || hasThinking) ? null : 'empty content' };
   } catch (error) {
     return { ok: false, reason: error?.name === 'AbortError' ? 'timeout' : error.message };
   } finally {
@@ -145,7 +153,7 @@ async function loadModelConfig() {
       baseUrl: firstNonEmpty(env.MINIMAX_BASE_URL, env.TOKEN_PLAN_BASE_URL) || 'https://api.minimaxi.com/anthropic',
       token: firstNonEmpty(env.MINIMAX_API_KEY, env.TOKEN_PLAN_API_KEY),
       model: firstNonEmpty(env.MINIMAX_MODEL, env.TOKEN_PLAN_MODEL) || 'MiniMax-M2.7',
-      timeoutMs: readPositiveNumber(firstNonEmpty(env.MODEL_REQUEST_TIMEOUT_MS, env.MINIMAX_REQUEST_TIMEOUT_MS), 12000),
+      timeoutMs: readPositiveNumber(firstNonEmpty(env.MODEL_REQUEST_TIMEOUT_MS, env.MINIMAX_REQUEST_TIMEOUT_MS), 90000),
     };
   }
 
@@ -153,8 +161,11 @@ async function loadModelConfig() {
     provider: 'anthropic',
     baseUrl: firstNonEmpty(env.ANTHROPIC_BASE_URL),
     token: firstNonEmpty(env.ANTHROPIC_AUTH_TOKEN, env.ANTHROPIC_API_KEY),
-    model: firstNonEmpty(env.ANTHROPIC_MODEL) || 'gpt-5.5[1m]',
-    timeoutMs: readPositiveNumber(firstNonEmpty(env.MODEL_REQUEST_TIMEOUT_MS, env.ANTHROPIC_REQUEST_TIMEOUT_MS), 12000),
+    model: firstNonEmpty(
+      env.ANTHROPIC_MODEL,
+      env.HISTORICAL_RUNTIME_MODEL
+    ) || 'claude-opus-4-8',
+    timeoutMs: readPositiveNumber(firstNonEmpty(env.MODEL_REQUEST_TIMEOUT_MS, env.ANTHROPIC_REQUEST_TIMEOUT_MS), 90000),
   };
 }
 
@@ -177,10 +188,43 @@ function extractJson(text) {
   try {
     return JSON.parse(candidate.slice(start, end + 1));
   } catch (e) {
-    // 尝试修复常见的尾随逗号 / 截断
-    const repaired = repairTruncatedJson(candidate.slice(start));
-    return JSON.parse(repaired);
+    // round 049: LLM 常见错误——字符串值漏了开引号（如 "label": 《授权法案》）
+    // 多级修复：先修裸引号，再修截断，最后组合修
+    const slice = candidate.slice(start, end + 1);
+    const repairs = [
+      () => repairMissingQuotes(slice),
+      () => repairTruncatedJson(slice),
+      () => repairMissingQuotes(repairTruncatedJson(slice)),
+    ];
+    for (let i = 0; i < repairs.length; i++) {
+      try {
+        return JSON.parse(repairs[i]());
+      } catch (_) { /* 尝试下一种修复 */ }
+    }
+    // 全部修复失败，打印诊断信息（仅 TURN_CYCLE_DEBUG 时打印原始返回，避免日志噪音）
+    if (process.env.TURN_CYCLE_DEBUG) {
+      console.error('[extractJson FAILED]', e.message);
+      console.error('[extractJson RAW (first 800 chars)]', candidate.slice(start, start + 800));
+    }
+    throw new Error(`JSON 解析失败: ${e.message}`);
   }
+}
+
+function repairMissingQuotes(text) {
+  // round 049: 修复 LLM 漏了字符串值开引号的常见错误
+  // 如 "label": 《授权法案》通过 → "label": "《授权法案》通过"
+  // 策略：匹配 : 或 [ 或 , 后紧跟非合法 JSON 值开头的裸值
+  // 用 lookahead 不消费分隔符，避免连续裸值被跳过
+  // 合法开头："  数字  t(rue)  f(alse)  n(ull)  {  [
+  return text.replace(
+    /(:\s*|[\[,]\s*)([^\s"',}\]\[\{\n][^,}\]\n]*?)(?=\s*[,}\]])/g,
+    (match, prefix, value) => {
+      if (/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(value)) return match;
+      if (value === 'true' || value === 'false' || value === 'null') return match;
+      const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      return `${prefix}"${escaped}"`;
+    }
+  );
 }
 
 function repairTruncatedJson(text) {
@@ -404,6 +448,12 @@ ${playerHistory && playerHistory.length > 0 ? `玩家已走过的路径：${play
 5. 中英混杂：档案正文用中文，保留关键原文（德语/英语术语）。
 6. 严肃处理纳粹德国、反犹迫害语境，不轻浮化。
 
+【JSON 格式 - 极重要】
+- 所有字符串值必须用双引号 "..." 包围
+- 错误示例：title: 档案标题 （值漏了双引号）
+- 正确示例：title: "档案标题"
+- 中文书名号《》不是引号，不能替代双引号
+
 只返回 JSON，不要解释：
 
 {
@@ -432,26 +482,45 @@ ${playerHistory && playerHistory.length > 0 ? `玩家已走过的路径：${play
 }
 
 function buildSituationRoomPrompt({ caseId, turn, worldState, currentNodeLabels, previousChoice, riskLevel }) {
-  const nodeDescriptions = worldState.nodes.map(n =>
+  const ws = worldState || {};
+  const nodeDescriptions = (Array.isArray(ws.nodes) ? ws.nodes : []).slice(0, 12).map(n =>
     `- ${n.id}: ${n.label} (类型: ${n.type}, 状态: ${n.status}, 标签: ${n.statusLabel})`
   ).join('\n');
 
-  const edgeDescriptions = worldState.edges.map(e =>
+  const edgeDescriptions = (Array.isArray(ws.edges) ? ws.edges : []).slice(0, 8).map(e =>
     `- ${e.from} → ${e.to}: ${e.label} (强度: ${e.strength})`
   ).join('\n');
+
+  // round 048: 让 LLM 看见当前世界线偏移，作为预估的基准
+  const currentDrift = ws.worldLineShift
+    ? `当前累计偏移 ${ws.worldLineShift.totalDelta}σ（领域：${(ws.worldLineShift.domains || []).join('、') || '尚未分叉'}）`
+    : '当前累计偏移 0σ（尚未分叉）';
+  const recentChanges = Array.isArray(ws.stateChangeHistory) && ws.stateChangeHistory.length > 0
+    ? ws.stateChangeHistory.slice(-5).map(sc => `  - ${sc.target}.${sc.field}: ${sc.from} → ${sc.to}`).join('\n')
+    : '  (无)';
+  const markedCluesDesc = ws.markedClues && Object.keys(ws.markedClues).length > 0
+    ? Object.entries(ws.markedClues).slice(0, 5).map(([cid, note]) => `  - ${cid}: ${note || '(无笔记)'}`).join('\n')
+    : '  (玩家未标记)';
 
   return `你是态势分析系统。请基于当前世界线状态，生成 3-4 个有历史框架内合理性的行动选项。
 
 核心世界线：1933 年，爱因斯坦没有离开德国。
 当前回合：${turn}
 
-世界线状态：
+【世界线状态】
 - 风险指数：${riskLevel}/5
-- 节点：\n${nodeDescriptions}
-- 连线：\n${edgeDescriptions || '(暂无)'}
+- ${currentDrift}
+- 节点：
+${nodeDescriptions || '- (无)'}
+- 连线：
+${edgeDescriptions || '- (暂无)'}
+- 近期变更：
+${recentChanges}
+- 玩家标记的线索（玩家关心的方向，至少一个选项应顺承或回应）：
+${markedCluesDesc}
 
 ${previousChoice ? `上一回合选择：${previousChoice.label} — ${previousChoice.consequencePreview}` : ''}
-${worldState.nextDeadline ? `下一个截止线：${worldState.nextDeadline.label}（${worldState.nextDeadline.date}）` : ''}
+${ws.nextDeadline ? `下一个截止线：${ws.nextDeadline.label}（${ws.nextDeadline.date}）` : ''}
 
 行动选项设计要求：
 1. 每个选项必须有历史框架内的合理性依据。
@@ -459,6 +528,14 @@ ${worldState.nextDeadline ? `下一个截止线：${worldState.nextDeadline.labe
 3. 给出后果预览——不是详细叙事，而是状态标签。
 4. 如果上一回合的选择产生了连锁效应，某些选项应该被移除或标记为"不可用"。
 5. 如果有截止线，至少一个选项应该标注"时间敏感"。
+6. 【关键】每个选项必须预估 worldLineShift（如果玩家选了这个，世界线会偏移多少）：
+   - estimatedDrift.totalDelta = 选项执行后的预估累计偏移（基于当前 ${ws.worldLineShift ? ws.worldLineShift.totalDelta : 0}σ 起算）
+   - estimatedDrift.turnDelta = 本选项预估新增偏移（-0.3 到 +2.0）
+   - estimatedDrift.domains = 受影响领域（如 physics/jewish_safety/diplomacy）
+   - estimatedDrift.reason = 一句话说明为什么这个选择会导致这个偏移（给玩家看的因果解释）
+7. 至少一个选项应保守（低偏移），至少一个应激进（高偏移）——让玩家在风险和回报间权衡。
+
+【JSON 格式 - 极重要】所有字符串值必须用双引号 "..." 包围。中文书名号《》不是引号。错误示例：label: 选项名。正确示例：label: "选项名"。
 
 只返回 JSON：
 
@@ -471,20 +548,77 @@ ${worldState.nextDeadline ? `下一个截止线：${worldState.nextDeadline.labe
     "nextDeadline": {"type": "newspaper_publication", "label": "柏林日报出刊", "date": "1933-10-20"}
   },
   "actionOptions": [
-    {"id": "action-x", "label": "选项名", "icon": "图标", "historicalPlausibility": "high|medium|low", "description": "描述", "riskCost": 1, "intelReturn": "high", "unlocksNodes": [], "consequencePreview": "预览"}
+    {"id": "action-x", "label": "选项名", "icon": "图标", "historicalPlausibility": "high|medium|low", "description": "描述", "riskCost": 1, "intelReturn": "high", "unlocksNodes": [], "consequencePreview": "预览", "estimatedDrift": {"turnDelta": 0.4, "totalDelta": 0.4, "domains": ["physics"], "reason": "一句话因果说明"}}
   ],
   "previousChoiceImpact": {"description": "上一回合选择的影响描述", "removedOptions": []},
   "historyFlags": ["fictional_branch"]
 }`;
 }
 
-function buildAftermathPrompt({ playerChoiceId, playerChoiceLabel, narrativeContext, worldState, intelCardTitle }) {
-  return `你是叙事分析组。基于玩家选择生成推演。核心世界线：1933 年爱因斯坦未离开德国。
+function buildAftermathPrompt({ playerChoiceId, playerChoiceLabel, narrativeContext, worldState, intelCardTitle, playerHistory }) {
+  // round 048: 真的让 LLM 看见当前世界线状态、上一张情报卡、历史变更、玩家标记的线索
+  // round 049: 补 playerHistory——aftermath 必须知道玩家之前选过什么，才能判断"连续激进"vs"首次激进"
+  const ws = worldState || {};
+  const nodesDesc = Array.isArray(ws.nodes) && ws.nodes.length > 0
+    ? ws.nodes.slice(0, 12).map(n => `  - ${n.id}: ${n.label} (状态: ${n.statusLabel || n.status})`).join('\n')
+    : '  (第一回合，无先前节点)';
+  const edgesDesc = Array.isArray(ws.edges) && ws.edges.length > 0
+    ? ws.edges.slice(0, 8).map(e => `  - ${e.from} → ${e.to}: ${e.label || '(无标签)'}`).join('\n')
+    : '  (暂无关系连线)';
+  const riskDesc = ws.riskIndicators
+    ? `总体风险 ${ws.riskIndicators.overall}/5，分项：${(ws.riskIndicators.components || []).map(c => `${c.label}=${c.value}`).join(', ')}`
+    : '风险未评估';
+  const deadlineDesc = ws.nextDeadline ? `下一截止线：${ws.nextDeadline.label}（${ws.nextDeadline.date}）` : '无截止线';
+  // round 049: 展示完整因果链历史，不只是最近一次——让玩家感到每个选择都在塑造世界
+  const wls = ws.worldLineShift || {};
+  const causeHistoryDesc = Array.isArray(wls.causeHistory) && wls.causeHistory.length > 0
+    ? wls.causeHistory.map((c, i) => `回合${i + 1}: ${c}`).join(' | ')
+    : (wls.lastCause || '无');
+  const driftDesc = `当前累计偏移 ${wls.totalDelta || 0}σ（领域：${(wls.domains || []).join('、') || '尚未分叉'}），历史成因：${causeHistoryDesc}`;
+  const playerHistoryDesc = Array.isArray(playerHistory) && playerHistory.length > 0
+    ? playerHistory.join(' → ')
+    : '(第一回合，玩家尚无选择历史)';
+  const historyDesc = Array.isArray(ws.stateChangeHistory) && ws.stateChangeHistory.length > 0
+    ? ws.stateChangeHistory.slice(-8).map(sc => `  - ${sc.target}.${sc.field}: ${sc.from} → ${sc.to}${sc.evidence ? '（证据：' + String(sc.evidence).slice(0, 60) + '）' : ''}`).join('\n')
+    : '  (无历史变更)';
+  const markedDesc = ws.markedClues && Object.keys(ws.markedClues).length > 0
+    ? Object.entries(ws.markedClues).slice(0, 6).map(([cid, note]) => `  - ${cid}: ${note || '(无笔记)'}`).join('\n')
+    : '  (玩家未标记任何线索)';
+
+  return `你是叙事分析组。基于玩家选择推演这一回合对世界线的真实影响。核心世界线：1933 年爱因斯坦未离开德国。
 
 玩家选择：${playerChoiceLabel}（${playerChoiceId}）
-${narrativeContext ? `前情：${narrativeContext.slice(0, 200)}` : ''}
+${intelCardTitle ? `触发情报卡：${intelCardTitle}` : ''}
+${narrativeContext ? `前情（玩家决策上下文）：${narrativeContext.slice(0, 200)}` : ''}
+玩家已走过的选择路径：${playerHistoryDesc}
 
-要求：严肃处理纳粹/反犹语境。narrative 控制在 120-180 字。每个 stateChange 必须有证据。
+【当前世界线状态 — 必须基于此推演，不能凭空捏造】
+- ${riskDesc}
+- ${deadlineDesc}
+- ${driftDesc}
+- 节点：
+${nodesDesc}
+- 关系：
+${edgesDesc}
+- 近期变更历史：
+${historyDesc}
+- 玩家标记的线索（玩家关心的方向，应在 narrative 或 stateChanges 中体现）：
+${markedDesc}
+
+推演要求：
+1. narrative 控制在 120-180 字。前 100-150 字为值班台内部报告风格（客观、克制、严肃处理纳粹/反犹语境）；最后一句必须是具体的人味细节——一个画面、一个声音、一个私人的瞬间（如"窗外传来一首安息日歌谣，无人唱和"），不带分析、不带机制术语、不出现"世界线""σ""偏移"等词。让玩家从一个具体画面感到这回合的代价。
+2. 每个 stateChange 必须有证据（evidence），且和玩家选择有直接因果——不能凭空发生与选择无关的变更。
+3. worldLineShift.totalDelta 必须反映玩家选择对历史进程的真实偏移强度：
+   - 选择保守/观察 → 0.0-0.3σ
+   - 选择有针对性干预（如转移、保护、传递情报）→ 0.4-0.8σ
+   - 选择高风险行动（如直接对抗、暴露身份）→ 0.9-1.5σ
+   - 选择改变历史走向（如阻止关键事件）→ 1.6-3.0σ
+4. worldLineShift.turnDelta 是本回合新增的偏移（-0.5 到 +2.5），可能为负（玩家选择反而拉回真实历史）。
+5. worldLineShift.domains 列出受影响的历史领域，如 physics/jewish_safety/nazi_ideology/diplomacy/academia。
+6. worldLineShift.cause 用一句话说明为什么这个选择导致了这个偏移——这是给玩家看的因果解释。
+7. 累积感知规则：参考玩家已走过的选择路径——如果玩家连续多回合选择同方向激进（如第 2、3 次都是高风险），turnDelta 应取该档位上限，且 narrative 必须体现"局势因持续干预而加速恶化"的累积感；如果玩家中途转向保守，turnDelta 应明显回落。让玩家感到他的每一步都在累积塑造世界线，不是孤立选择。
+
+【JSON 格式 - 极重要】所有字符串值必须用双引号 "..." 包围。中文书名号《》不是引号。错误示例：cause: 直接干预。正确示例：cause: "直接干预"。
 
 只返回 JSON（结构化字段在前，narrative 在最后，确保完整）：
 
@@ -498,7 +632,13 @@ ${narrativeContext ? `前情：${narrativeContext.slice(0, 200)}` : ''}
   "nextIntelCard": {"title": "下张情报卡", "documentId": "B-XX-1933-XXXX", "date": "1933-XX-XX", "provenance": "generated", "confidence": 0.8},
   "historyFlags": ["fictional_branch"],
   "requiresHumanApproval": false,
-  "narrative": "120-180字值班台内部报告风格叙事"
+  "worldLineShift": {
+    "turnDelta": 0.4,
+    "totalDelta": 0.4,
+    "domains": ["physics", "jewish_safety"],
+    "cause": "一句话说明玩家选择为什么导致这个偏移——这是给玩家看的因果解释"
+  },
+  "narrative": "前段值班台报告风格，最后一句人味细节画面"
 }`;
 }
 
@@ -599,6 +739,27 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
+async function retryWithBackoff(fn, maxRetries = MAX_RETRIES, baseDelayMs = RETRY_BASE_DELAY_MS) {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      // 只对可恢复错误重试（超时 / 并发错误 / 网络抖动）
+      // 不可恢复错误（认证失败 / 模型不支持）直接放弃
+      const isRecoverable = /超时|concurrency|rate.limit|529|502|503|504|ECONNRESET|ETIMEDOUT/.test(lastError.message);
+      if (!isRecoverable || attempt >= maxRetries) break;
+      const delay = baseDelayMs * (attempt + 1);
+      if (process.env.TURN_CYCLE_DEBUG) {
+        console.error(`[retry] attempt ${attempt + 1}/${maxRetries} failed: ${lastError.message.slice(0, 100)}, retry in ${delay}ms`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}
+
 async function callAnthropicMessages(config, prompt, overrides = {}) {
   if (!config.baseUrl || !config.token) {
     throw new Error(config.provider === 'minimax'
@@ -615,7 +776,7 @@ async function callAnthropicMessages(config, prompt, overrides = {}) {
     },
     body: JSON.stringify({
       model: config.model,
-      max_tokens: overrides.maxTokens ?? 1200,
+      max_tokens: overrides.maxTokens ?? 8000,
       temperature: overrides.temperature ?? 0.9,
       messages: [{ role: 'user', content: prompt }],
     }),
@@ -632,6 +793,17 @@ async function callAnthropicMessages(config, prompt, overrides = {}) {
     .map((part) => part.text)
     .join('\n')
     .trim();
+
+  if (!text) {
+    // round 052: thinking 模型若 max_tokens 不足会被 thinking 占满预算，
+    // 可能返回 end_turn 但无 text block。给诊断信息帮助定位。
+    const contentTypes = (data.content || [])
+      .map((part) => part?.type)
+      .filter(Boolean)
+      .join(',') || 'none';
+    const stopReason = data.stop_reason || 'unknown';
+    throw new Error(`模型返回空内容：${config.model} content_types=${contentTypes} stop=${stopReason}`);
+  }
 
   return text;
 }
@@ -662,7 +834,7 @@ async function callOpenAICompatibleChat(config, prompt, overrides = {}) {
     },
     body: JSON.stringify({
       model: config.model,
-      max_tokens: overrides.maxTokens ?? 1200,
+      max_tokens: overrides.maxTokens ?? 4000,
       temperature: overrides.temperature ?? 0.9,
       messages: [{ role: 'user', content: prompt }],
     }),
@@ -675,6 +847,9 @@ async function callOpenAICompatibleChat(config, prompt, overrides = {}) {
 
   const data = JSON.parse(body);
   const text = normalizeOpenAIContent(data.choices?.[0]?.message?.content).trim();
+  if (!text) {
+    throw new Error(`模型返回空内容：${config.model} choices_empty`);
+  }
 
   return text;
 }
@@ -818,7 +993,8 @@ async function runHistoricalRuntime(payload, progressJob = null) {
   ];
 
   try {
-    const generated = await callModel(payload);
+    const raw = await retryWithBackoff(() => callModel(payload));
+    const generated = parseModelText(raw);
     if (progressJob) {
       emitJobEvent(progressJob, {
         stage: 'history_review',
@@ -982,6 +1158,16 @@ function createInitialCaseState(caseId, payload) {
     previousChoice: null,
     stateChangeHistory: [],
     markedClues: {},
+    // round 048: 真实世界线偏移，由 LLM aftermath 根据 playerChoice 推演，不再用公式造假
+    // round 049: 加 causeHistory——累积每回合因果，让玩家看到完整塑造链而非只最近一次
+    worldLineShift: {
+      totalDelta: 0,        // 累计偏移 σ
+      turnDelta: 0,         // 本回合偏移 σ
+      domains: [],          // 受影响领域，如 ['physics', 'jewish_safety', 'nazi_ideology']
+      lastCause: null,      // 最近一次偏移的因果说明（向后兼容）
+      causeHistory: [],     // 每回合的因果说明累积，保留最近 5 次
+      turnDeltaHistory: [], // 每回合 turnDelta 累积，供前端折线图使用
+    },
     updatedAt: new Date().toISOString(),
   };
 }
@@ -1147,6 +1333,31 @@ function applyAftermath(state, aftermath) {
     aftermath.historyFlags.forEach((flag) => state.historyFlags.add(flag));
   }
 
+  // round 048: 累积 LLM 推演的世界线偏移到 caseState
+  // round 049: 累积 causeHistory——让玩家看到每回合的因果，不止最近一次
+  if (aftermath.worldLineShift && typeof aftermath.worldLineShift.turnDelta === 'number') {
+    const shift = aftermath.worldLineShift;
+    const current = state.worldLineShift || { totalDelta: 0, turnDelta: 0, domains: [], lastCause: null, causeHistory: [] };
+    // 累计偏移 = 历史累计 + 本回合新增（允许负值——玩家可能拉回真实历史）
+    const newTotal = Math.max(0, Math.round((current.totalDelta + shift.turnDelta) * 10) / 10);
+    // 合并领域（去重，保留最近 8 个）
+    const mergedDomains = [...new Set([...(current.domains || []), ...(shift.domains || [])])].slice(-8);
+    // 累积因果说明（保留最近 5 次），让玩家看到完整塑造链
+    const newCause = shift.cause || null;
+    const causeHistory = Array.isArray(current.causeHistory) ? [...current.causeHistory] : [];
+    if (newCause) causeHistory.push(newCause);
+    const turnDeltaHistory = Array.isArray(current.turnDeltaHistory) ? [...current.turnDeltaHistory] : [];
+    turnDeltaHistory.push(shift.turnDelta);
+    state.worldLineShift = {
+      totalDelta: newTotal,
+      turnDelta: shift.turnDelta,
+      domains: mergedDomains,
+      lastCause: newCause || current.lastCause,
+      causeHistory: causeHistory.slice(-5),
+      turnDeltaHistory: turnDeltaHistory.slice(-12),
+    };
+  }
+
   // 记录下一张情报卡
   if (aftermath.nextIntelCard) {
     state.nextIntelCard = aftermath.nextIntelCard;
@@ -1156,6 +1367,9 @@ function applyAftermath(state, aftermath) {
 function compileWorldStateFromCase(state) {
   return {
     caseId: state.caseId,
+    turn: state.turn,
+    caseTitle: state.caseTitle,
+    historicalAnchors: state.historicalAnchors || [],
     anchor: { id: 'anchor', label: state.caseTitle, type: 'anomaly_origin', status: 'active' },
     nodes: Array.from(state.nodes.values()),
     edges: Array.from(state.edges.values()),
@@ -1168,6 +1382,17 @@ function compileWorldStateFromCase(state) {
     flags: Array.from(state.flags),
     clues: state.clues,
     markedClues: state.markedClues || {},
+    // round 048: 导出真实世界线偏移 + 变更历史摘要，让 prompt 看得见因果
+    // round 049: 导出 causeHistory，前端可渲染完整塑造链
+    worldLineShift: state.worldLineShift || { totalDelta: 0, turnDelta: 0, domains: [], lastCause: null, causeHistory: [] },
+    stateChangeHistory: (state.stateChangeHistory || []).slice(-12).map((sc) => ({
+      target: sc.target,
+      field: sc.field,
+      from: sc.from,
+      to: sc.to,
+      evidence: sc.evidence ? String(sc.evidence).slice(0, 80) : '',
+    })),
+    previousChoice: state.previousChoice || null,
   };
 }
 
@@ -1313,6 +1538,18 @@ function parseSituationRoomResult(parsed) {
     actionOptions: {
       options: parsed.actionOptions.map((o) => {
         assertFields(o, ['label'], 'actionOptions');
+        // round 048: 解析预估偏移，让玩家选择前就看到因果
+        const rawDrift = o.estimatedDrift || {};
+        const estimatedDrift = {
+          turnDelta: typeof rawDrift.turnDelta === 'number'
+            ? Math.max(-0.3, Math.min(2.0, rawDrift.turnDelta))
+            : 0,
+          totalDelta: typeof rawDrift.totalDelta === 'number' ? Math.max(0, rawDrift.totalDelta) : 0,
+          domains: Array.isArray(rawDrift.domains)
+            ? rawDrift.domains.map((d) => String(d)).filter(Boolean).slice(0, 5)
+            : [],
+          reason: rawDrift.reason ? String(rawDrift.reason).slice(0, 200) : null,
+        };
         return {
           id: String(o.id || createId('action')),
           label: String(o.label),
@@ -1323,6 +1560,7 @@ function parseSituationRoomResult(parsed) {
           intelReturn: String(o.intelReturn || 'low'),
           unlocksNodes: Array.isArray(o.unlocksNodes) ? o.unlocksNodes : [],
           consequencePreview: String(o.consequencePreview || ''),
+          estimatedDrift,
         };
       }),
       previousChoiceImpact: parsed.previousChoiceImpact || null,
@@ -1337,6 +1575,16 @@ function parseAftermathResult(parsed) {
   const narrative = (parsed.narrative && typeof parsed.narrative === 'string' && parsed.narrative.trim())
     ? String(parsed.narrative)
     : '本轮推演报告已归档（叙事文本因生成上限截断，详情见下方状态变更与新增线索）。';
+
+  // round 048: 解析 LLM 推演的世界线偏移，不再用公式造假
+  const rawShift = parsed.worldLineShift || {};
+  const turnDelta = typeof rawShift.turnDelta === 'number'
+    ? Math.max(-0.5, Math.min(2.5, rawShift.turnDelta))
+    : (typeof rawShift.totalDelta === 'number' ? Math.max(0, Math.min(2.5, rawShift.totalDelta)) : 0);
+  const domains = Array.isArray(rawShift.domains)
+    ? rawShift.domains.map((d) => String(d)).filter(Boolean).slice(0, 6)
+    : [];
+
   return {
     stage: 'aftermath',
     narrative,
@@ -1368,6 +1616,12 @@ function parseAftermathResult(parsed) {
     nextIntelCard: parsed.nextIntelCard || null,
     historyFlags: normalizeStringArray(parsed.historyFlags, ['fictional_branch']),
     requiresHumanApproval: Boolean(parsed.requiresHumanApproval),
+    // round 048: LLM 推演的真实世界线偏移
+    worldLineShift: {
+      turnDelta,
+      domains,
+      cause: rawShift.cause ? String(rawShift.cause).slice(0, 200) : null,
+    },
   };
 }
 
@@ -1375,7 +1629,7 @@ function parseAftermathResult(parsed) {
 
 async function callModelWithPrompt(prompt, progressJob) {
   const config = await loadModelConfig();
-  const overrides = { maxTokens: 4000, temperature: 0.5 };
+  const overrides = { maxTokens: 8000, temperature: 0.5 };
 
   // MiniMax provider 走自己的路径
   if (config.provider === 'minimax') {
@@ -1385,6 +1639,7 @@ async function callModelWithPrompt(prompt, progressJob) {
     return await callAnthropicMessages(config, prompt, overrides);
   }
 
+  const fallbackModels = MODEL_FALLBACK_CHAIN;
   // Anthropic provider：直接尝试候选模型，失败自动降级。
   // 不做主动探测——探测请求本身会消耗并发额度，反而让真正请求更难成功。
   // 优先级：环境变量指定模型 > 缓存的可用模型 > fallback chain 其余成员。
@@ -1392,7 +1647,7 @@ async function callModelWithPrompt(prompt, progressJob) {
   const orderedCandidates = [
     ...(envModel ? [envModel] : []),
     ...(cachedWorkingModel && cachedWorkingModel !== envModel ? [cachedWorkingModel] : []),
-    ...MODEL_FALLBACK_CHAIN.filter((m) => m !== envModel && m !== cachedWorkingModel),
+    ...fallbackModels.filter((m) => m !== envModel && m !== cachedWorkingModel),
   ];
 
   let lastError = null;
@@ -1451,9 +1706,9 @@ async function runTurnStage(prompt, parser, stageName, displayName, progressJob)
   }
 
   try {
-    const raw = await callModelWithPrompt(prompt, progressJob);
+    const raw = await retryWithBackoff(() => callModelWithPrompt(prompt, progressJob));
     if (process.env.TURN_CYCLE_DEBUG) {
-      console.error(`[DEBUG ${stageName}] raw model response (first 500 chars):`, String(raw).slice(0, 500));
+      console.error(`[DEBUG ${stageName}] raw model response (first 3000 chars):`, String(raw).slice(0, 3000));
     }
     const parsed = extractJson(raw);
     const result = parser(parsed);
@@ -1632,7 +1887,7 @@ async function runTurn(payload, progressJob) {
         anchor: { id: 'anchor', label: '异常锚点', type: 'anomaly_origin', status: 'active' },
         nodes: [{ id: 'node-unknown', label: '待观察', type: 'unknown', status: 'latent', statusLabel: '待观察', depth: 1 }],
         edges: [],
-        worldLineShift: { totalDelta: 0, domains: [] },
+        worldLineShift: { totalDelta: 0, turnDelta: 0, domains: [], lastCause: null },
         riskIndicators: { overall: 1, max: 5, components: [{ label: '操作风险', value: 1 }] },
         nextDeadline: { type: 'newspaper_publication', label: '柏林日报出刊', date: '1933-10-20' },
         actionOptions: {
@@ -1657,20 +1912,31 @@ async function runTurnAftermath(payload, progressJob) {
       playerChoiceId,
       playerChoiceLabel,
       narrativeContext,
-      worldState,
+      worldState: payloadWorldState,
       intelCardTitle,
       caseId: payloadCaseId,
+      playerHistory = [],
       briefingHistoryFlags = [],
       situationRoomHistoryFlags = [],
     } = payload;
+
+    // round 048: 不信任前端传的 worldState，用累积 caseState 重编译作为权威
+    // 前端可能传 undefined、旧状态、或不完整的快照——只有 caseState 是真相来源
+    const caseState = payloadCaseId
+      ? getOrCreateCaseState(payloadCaseId, { caseTitle: intelCardTitle || '历史异常事件' })
+      : null;
+    const authoritativeWorldState = caseState
+      ? compileWorldStateFromCase(caseState)
+      : payloadWorldState || {};
 
     const aftermathResult = await runTurnStage(
       buildAftermathPrompt({
         playerChoiceId,
         playerChoiceLabel,
         narrativeContext,
-        worldState,
+        worldState: authoritativeWorldState,
         intelCardTitle,
+        playerHistory,
       }),
       parseAftermathResult,
       'aftermath',
@@ -1678,23 +1944,26 @@ async function runTurnAftermath(payload, progressJob) {
       progressJob
     );
 
-    // 把 state changes 应用到累积 case state
+    // 把 state changes + worldLineShift 应用到累积 case state
     const appliedStateChanges = [];
-    if (payloadCaseId) {
-      const caseState = getOrCreateCaseState(payloadCaseId, { caseTitle: intelCardTitle || '历史异常事件' });
+    if (caseState) {
       applyAftermath(caseState, aftermathResult);
       caseState.turn = turn;
+      caseState.previousChoice = { id: playerChoiceId, label: playerChoiceLabel };
 
       // 收集实际被应用的状态变更（player_visible 部分）
       appliedStateChanges.push(...aftermathResult.stateChanges.filter((sc) => sc.visibility !== 'system_only'));
     }
+
+    // round 048: 重新编译 worldState，确保前端拿到的是 applyAftermath 后的最新状态（含 worldLineShift）
+    const finalWorldState = caseState ? compileWorldStateFromCase(caseState) : null;
 
     return {
       ok: true,
       turn,
       stage: 'complete',
       aftermath: aftermathResult,
-      worldState: payloadCaseId ? compileWorldStateFromCase(caseStates.get(payloadCaseId)) : null,
+      worldState: finalWorldState,
       appliedStateChanges,
       historyFlags: [...new Set([
         ...briefingHistoryFlags,
@@ -1717,6 +1986,9 @@ async function runTurnAftermath(payload, progressJob) {
         displayUnit: '叙事分析组',
       });
     }
+    // round 048: fallback 也带 worldLineShift 字段，避免前端 undefined
+    const fallbackCaseState = payload.caseId ? getOrCreateCaseState(payload.caseId, payload) : null;
+    const fallbackWorldState = fallbackCaseState ? compileWorldStateFromCase(fallbackCaseState) : null;
     return {
       ok: true,
       turn: payload.turn || 1,
@@ -1734,15 +2006,14 @@ async function runTurnAftermath(payload, progressJob) {
           'fictional_branch',
         ])],
         requiresHumanApproval: false,
+        worldLineShift: { turnDelta: 0, domains: [], cause: '模型不可用，无法推演偏移' },
       },
+      worldState: fallbackWorldState,
       historyFlags: [...new Set([
         ...(payload.briefingHistoryFlags || []),
         ...(payload.situationRoomHistoryFlags || []),
         'fictional_branch',
       ])],
-      worldState: payload.caseId
-        ? compileWorldStateFromCase(getOrCreateCaseState(payload.caseId, payload))
-        : null,
     };
   }
 }

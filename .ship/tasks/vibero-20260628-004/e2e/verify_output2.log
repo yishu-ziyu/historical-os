@@ -1,0 +1,80 @@
+=== 1. reset case ===
+{"ok":true,"reset":true}
+
+=== 2. start turn 1 (briefing + situation room) ===
+job1: job-mr316am3-x3q4j5
+................
+--- T1 briefing title: 柏林物理学会会员名录变动 — 第 4 季度异常报告
+--- T1 briefing text: 本季度会员名录核对工作已由行政处 F. 科赫 (F. Koch) 主持完竣。截至 1933 年 10 月 15 日，本会正式会员计 412 人，其中：
+
+一、根据 1933 年 4 月 7 日《公务员法》 (Gesetz zur Wiederherstellung des Berufsbeamtentums) 第 3 条相关规定，国家资助机构雇员之非雅利安血统者，须于 1933 年 9 月 30 日前完成离职手续。本会已据此向文化部 (Reichsministerium für Volksauf
+--- T1 contradictions: 3
+--- T1 clues: 4
+
+--- T1 situation anchor: 异常锚点：爱因斯坦滞留柏林
+--- T1 action options: 4
+   * action-establish-contact | 通过私人渠道联络爱因斯坦 | riskCost=0 intelReturn=medium | estDrift.turnDelta=0.1 | reason=单纯信息收集，不改变历史走向，仅微调观测偏差
+   * action-academy-pressure | 向普鲁士科学院施压保护 | riskCost=1 intelReturn=low | estDrift.turnDelta=0.5 | reason=科学院罕见地公开对抗政治压力，在现实历史中未曾发生，构成明显分叉
+   * action-facilitate-exit | 秘密安排爱因斯坦出境 | riskCost=2 intelReturn=high | estDrift.turnDelta=-0.2 | reason=推动爱因斯坦重走真实历史路径，反而压缩分叉幅度，世界线向基准线收敛
+   * action-reveal-threat | 向爱因斯坦本人揭示威胁 | riskCost=2 intelReturn=high | estDrift.turnDelta=1.8 | reason=向历史人物透露未来信息属于严重因果干预，将触发最大幅度的世界线偏移与悖论风险
+--- T1 worldState.worldLineShift: {
+  totalDelta: 0,
+  turnDelta: 0,
+  domains: [],
+  lastCause: null,
+  causeHistory: []
+}
+--- T1 previousChoice: null
+
+=== 3. submit aftermath: pick "向爱因斯坦本人揭示威胁" (turnDelta=1.8) ===
+aftermath job: job-mr316zdf-u29lzi
+......
+--- aftermath1 narrative: 【值班台内部报告 | 1933-03-15 14:22】
+
+行动执行完毕。操作员已在卡普斯山上当面将纳粹威胁情报传递给目标。据现场观测，目标在阅读材料后中断原定行程，独自返回书房并约见秘书。目标追问科学院近期文件动向，显示出超出预期的警觉——这意味着情报未被当作风言风语处理。爱因斯坦目前仍身处德国境内，安全状况暂未恶化，但其行为模式已开始偏离历史惯性。
+
+请注意：此次接触未使用中转渠道，操作风险已上调一档。若目标将此事告知其核心社交圈，情报扩散窗口将急剧扩大。普鲁士科学院春季全会尚余三十日，纳粹方面对犹太裔院士的施压节奏尚在评估中。保持监控，暂不升级介入等级。
+--- aftermath1 stateChanges: 4
+   * character.einstein.status: hesitating → informed | evidence=操作员直接向目标当面传递纳粹威胁情报，目标已知晓自身处境的紧迫性
+   * node-safekeeping.status: 暂时安全 → 主动警觉 | evidence=目标收到情报后态度从犹豫转为警觉，开始评估离境可能性
+   * node-anchor-einstein-1933.instability: 低 → 中等 | evidence=核心锚点接收到外部干预信息，行为模式将因此改变，锚定强度下降
+   * 操作风险.value: 1 → 2 | evidence=与目标直接接触增加被监听或被第三方发现的风险，暴露窗口扩大
+--- aftermath1 worldLineShift: {
+  turnDelta: 0.4,
+  domains: [ 'physics', 'jewish_safety' ],
+  cause: '直接向目标揭露威胁属有针对性干预，目标从犹豫转为警觉，离境准备可能被提前触发，但尚未造成实质性历史走向改变。'
+}
+--- aftermath1 newNodes: 1
+--- aftermath1 requiresHumanApproval: false
+--- aftermath1 finalWorldState.worldLineShift: {
+  totalDelta: 0.4,
+  turnDelta: 0.4,
+  domains: [ 'physics', 'jewish_safety' ],
+  lastCause: '直接向目标揭露威胁属有针对性干预，目标从犹豫转为警觉，离境准备可能被提前触发，但尚未造成实质性历史走向改变。',
+  causeHistory: [ '直接向目标揭露威胁属有针对性干预，目标从犹豫转为警觉，离境准备可能被提前触发，但尚未造成实质性历史走向改变。' ]
+}
+
+=== 4. start turn 2 (看 previousChoice + worldLineShift 是否进入 prompt) ===
+job2: job-mr3178ns-v6lcoq
+................
+--- T2 briefing title: 占位情报卡（模型不可用）
+--- T2 briefing text: 模型暂时不可用，情报卡内容将使用占位数据。请检查模型配置后重试。
+--- T2 worldState.worldLineShift: {
+  totalDelta: 0.4,
+  turnDelta: 0.4,
+  domains: [ 'physics', 'jewish_safety' ],
+  lastCause: '直接向目标揭露威胁属有针对性干预，目标从犹豫转为警觉，离境准备可能被提前触发，但尚未造成实质性历史走向改变。',
+  causeHistory: [ '直接向目标揭露威胁属有针对性干预，目标从犹豫转为警觉，离境准备可能被提前触发，但尚未造成实质性历史走向改变。' ]
+}
+--- T2 previousChoice: { id: 'action-reveal-threat', label: '向爱因斯坦本人揭示威胁' }
+--- T2 stateChangeHistory count: 4
+
+--- T2 situation anchor: 异常锚点
+--- T2 action options: 1
+   * action-observe | 继续观察 | estDrift.turnDelta=undefined totalDelta=undefined | reason=
+
+=== 5. 因果链判定 ===
+回合1 aftermath turnDelta: 0.4
+回合2 累计 totalDelta: 0.4 (应 > 0 且包含回合1贡献)
+回合2 previousChoice: 向爱因斯坦本人揭示威胁 (应为 "向爱因斯坦本人揭示威胁")
+因果链闭合: YES ✓

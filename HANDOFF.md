@@ -571,3 +571,33 @@ GET /api/jobs/{jobId}
 ## 重要约束
 - 不要把产品简化成传统 Galgame 或聊天机器人。
 - 每轮有实质判断后，应写入 `logs/` 并更新 `TODO.md` / `HANDOFF.md`。
+
+## 第 46 轮确认 / 第 47 轮实现 — AI 全权接管
+用户授权（原话）："给你全部的修改和思考权限，按照你的思路来打造这款游戏，我明天起床验收，算是做个实验了，看看你能弄出来啥，期待捏"
+
+### Round 046 PM 决策（AI 做）
+不重做机制，补强三件事——开场序列 + 世界线漂移指示器 + 回合后果可视化。一句话定位：「你是一个时间档案值班台情报官。历史裂缝每天落到你桌上。读档案、标线索、做小决策——世界线随你可见地漂移。你不是在解谜，你是在守门。」
+
+范围：In = `index.html / turn_cycle.js / style.css` 三个前端文件；Out = server.mjs / schema / 测试 / LLM prompt / 美术风格 / case 内容。
+
+### Round 047 实现（AI 做）
+按 spec 实现三个组件：
+
+1. **Opening Cinematic**：6 阶段开场（黑屏→打字机日期→红字异常→电报体→钩子句→漂移条动画→desk 渐入），sessionStorage 'htd_seen_intro' 防重播，右下角跳过按钮。
+2. **Worldline Drift Indicator**：`.desk-header` 下方顶部常驻横向条，0σ→+5σ 刻度，颜色绿→琥珀→红→深红，公式 `driftSigma = (stateChangeHistory.length * 0.4) + (riskOverall * 0.3)`。
+3. **Stakes Panel**：`renderAftermath` 顶部插入，显示本回合偏移/累计偏移/风险等级/下一回合/撬动对象。
+
+### 验证
+- `node --check turn_cycle.js` / `node --check server.mjs` 通过
+- `node --test`：baseline 10 fail → 改后 8 fail，净减少 2 个失败；剩余 8 个全是 baseline（断言不存在的旧 API）
+- 服务器启动，HTTP 200，页面加载，新 DOM 元素 + JS 函数 + CSS 样式都到位
+- 实际跑一回合，case state 结构被防御性代码正确处理（`riskIndicators.overall=3` / `nextDeadline` 对象 / `stateChangeHistory` 顶层数组）
+- 浏览器实际渲染验收（开场动画播放、漂移条移动、stakes panel 显示）留给用户起床后做
+
+### 运行方式
+```bash
+cd artifacts/web_story_loop_demo
+PORT=8892 node server.mjs
+# 浏览器打开 http://127.0.0.1:8892/
+```
+首次访问播放开场序列，刷新后不重播（sessionStorage）。点"启动值班"开始回合，看漂移条移动 + aftermath 顶部 stakes panel。

@@ -36,6 +36,10 @@ let turnState = {
   caseId: 'einstein-1933',
   markedClues: {},
   currentTurnMarkedCount: 0,
+  // round 048: 玩家选择历史，跨回合累积，发给后端让 prompt 看见因果
+  playerHistory: [],
+  // round 048: 后端权威 caseState 快照（含 worldLineShift + stateChangeHistory）
+  caseStateBody: null,
 };
 
 const MARKED_CLUE_API_PATH = '/api/case';
@@ -105,15 +109,37 @@ function showOnly(section) {
   if (dom.emptyState) dom.emptyState.hidden = !!section;
 }
 
-function showLoading(message) {
+let _loadingTimer = null;
+function showLoading(message, kind) {
   showOnly(null);
+  if (_loadingTimer) { clearInterval(_loadingTimer); _loadingTimer = null; }
   if (dom.emptyState) {
     dom.emptyState.hidden = false;
     clearEl(dom.emptyState);
-    dom.emptyState.appendChild(make('div', null, 'loading-stamp'));
-    dom.emptyState.querySelector('.loading-stamp').textContent = 'PROCESSING';
-    dom.emptyState.appendChild(make('p', message, 'loading-msg'));
+    const stamp = make('div', null, 'loading-stamp');
+    stamp.textContent = '值班台';
+    dom.emptyState.appendChild(stamp);
+    const msgEl = make('p', message, 'loading-msg');
+    dom.emptyState.appendChild(msgEl);
+    // round 051: aftermath 推演分段轮播值班台文案，让等待有节奏感而非机械 PROCESSING
+    if (kind === 'aftermath') {
+      const phases = [
+        '档案室灯亮着 · 卷宗调取中',
+        '核验来源 · 交叉比对',
+        '推演世界线的代价',
+      ];
+      let idx = 0;
+      msgEl.textContent = phases[0];
+      _loadingTimer = setInterval(() => {
+        idx = (idx + 1) % phases.length;
+        msgEl.textContent = phases[idx];
+      }, 2200);
+    }
   }
+}
+
+function stopLoading() {
+  if (_loadingTimer) { clearInterval(_loadingTimer); _loadingTimer = null; }
 }
 
 // ─── Briefing ───
@@ -342,11 +368,318 @@ function renderSituationRoom(sr) {
         btn.appendChild(make('p', `后果预览：${option.consequencePreview}`, 'action-consequence'));
       }
 
+      // round 048: 显示 LLM 预估的世界线偏移，让玩家选择前就看到因果
+      if (option.estimatedDrift && typeof option.estimatedDrift.turnDelta === 'number') {
+        const drift = option.estimatedDrift;
+        const driftEl = make('div', null, 'action-estimated-drift');
+        const driftVal = drift.turnDelta >= 0 ? `+${drift.turnDelta.toFixed(1)}σ` : `${drift.turnDelta.toFixed(1)}σ`;
+        const severityClass = drift.turnDelta < 0.3 ? 'drift-low' : drift.turnDelta < 0.8 ? 'drift-mid' : drift.turnDelta < 1.5 ? 'drift-high' : 'drift-critical';
+        driftEl.classList.add(severityClass);
+        driftEl.appendChild(make('span', `预估偏移 ${driftVal}`, 'drift-value'));
+        if (drift.reason) {
+          driftEl.appendChild(make('small', drift.reason, 'drift-reason'));
+        }
+        btn.appendChild(driftEl);
+      }
+
       btn.onclick = () => onActionChosen(option);
       list.appendChild(btn);
     });
     dom.situationSection.appendChild(list);
   }
+}
+
+// ─── 开场序列 / 世界线漂移 / 后果面板（round 047）───
+
+async function playOpeningIfNeeded() {
+  if (sessionStorage.getItem('htd_seen_intro') === '1') {
+    document.getElementById('openingCinematic')?.setAttribute('hidden', '');
+    return;
+  }
+
+  const overlay = document.getElementById('openingCinematic');
+  if (!overlay) return;
+
+  document.querySelector('.desk')?.classList.add('intro-pending');
+  overlay.removeAttribute('hidden');
+
+  const skipBtn = document.getElementById('openingSkip');
+  const skip = () => finishOpening();
+  skipBtn?.addEventListener('click', skip, { once: true });
+
+  const stages = ['stage-a', 'stage-b', 'stage-c', 'stage-d', 'stage-e'];
+  // round 050: 压缩开场节奏，钩子句从 9.6s 提前到 ~5s，给玩家 10s 消化窗口
+  for (let i = 0; i < stages.length; i++) {
+    await sleep(900);
+    overlay.classList.add(stages[i]);
+  }
+  await sleep(600);
+  finishOpening();
+
+  function finishOpening() {
+    overlay.classList.add('stage-done');
+    sessionStorage.setItem('htd_seen_intro', '1');
+    document.querySelector('.desk')?.classList.remove('intro-pending');
+    setTimeout(() => overlay.setAttribute('hidden', ''), 800);
+    // round 050: 开场结束显示 0σ 起点（世界线尚未偏移），自动进入第一回合，避免"待命/系统就绪"情感势能断裂
+    renderWorldlineDrift(0);
+    setTimeout(() => { startNewTurn(); }, 1000);
+  }
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// round 050: σ 数字配中文重量标签，让玩家"说出"漂移意味着什么
+function driftWeightLabel(sigma) {
+  const s = Math.abs(Number(sigma) || 0);
+  if (s < 0.35) return { label: '轻擦历史', severity: 'low', desc: '微弱回响，历史惯性仍在' };
+  if (s < 0.85) return { label: '推动时间线', severity: 'mid', desc: '不可忽视的偏离' };
+  if (s < 1.6) return { label: '撕裂历史', severity: 'high', desc: '重大偏离，难以收束' };
+  return { label: '重写世界', severity: 'critical', desc: '不可逆的世界线分叉' };
+}
+
+function renderWorldlineDrift(driftSigma) {
+  const container = document.getElementById('worldlineDrift');
+  if (!container) return;
+
+  container.removeAttribute('hidden');
+
+  const cursor = document.getElementById('driftCursor');
+  const current = document.getElementById('driftCurrent');
+  if (!cursor || !current) return;
+
+  const sigma = Math.max(0, Math.min(5, Number(driftSigma) || 0));
+  const percent = (sigma / 5) * 100;
+
+  cursor.style.left = `${percent}%`;
+
+  let color;
+  if (sigma < 1) color = 'var(--green)';
+  else if (sigma < 3) color = 'var(--gold-bright)';
+  else if (sigma < 5) color = 'var(--red-bright)';
+  else color = 'var(--red)';
+
+  cursor.style.background = color;
+  cursor.style.boxShadow = `0 0 12px ${color}`;
+
+  // round 050: σ 数字配中文重量标签，玩家能"说出"漂移意味着什么
+  const weight = driftWeightLabel(sigma);
+  current.textContent = `累计偏移 +${sigma.toFixed(1)}σ · ${weight.label}`;
+  current.style.color = color;
+
+  container.dataset.severity = weight.severity;
+  // round 050: 整页氛围响应——body 携带 drift-severity，CSS 变量响应式变化
+  document.body.dataset.driftSeverity = weight.severity;
+}
+
+// round 051: 阶段性判语——基于累计偏移+受影响领域，告诉玩家"你的世界线正朝 X 收敛"
+function verdictForWorldline(cumulative, domains) {
+  const s = Math.abs(Number(cumulative) || 0);
+  const topDomains = (domains || []).slice(0, 2);
+  const domainMap = { physics: '物理学', jewish_safety: '犹太人安全', nazi_ideology: '纳粹意识形态', diplomacy: '外交', academia: '学术界', politics: '政治', military: '军事', science: '科学', economy: '经济' };
+  const domainLabel = topDomains.length > 0
+    ? topDomains.map(d => domainMap[d] || d).join('与')
+    : '';
+  if (s < 0.35) return '世界线尚在惯性中，历史还未真正改变';
+  if (s < 0.85) return domainLabel ? `你的选择开始在${domainLabel}留下擦痕` : '你的选择开始留下擦痕';
+  if (s < 1.6) return domainLabel ? `历史已经偏离——${domainLabel}的走向不再真实` : '历史已经偏离真实走向';
+  if (s < 3.0) return domainLabel ? `这条世界线正朝${domainLabel}收敛，难以收束` : '这条世界线正朝某个方向收敛，难以收束';
+  return domainLabel ? `${domainLabel}已被改写，这条世界线已无法回头` : '这条世界线已无法回头';
+}
+
+// round 051: 世界线轨迹 SVG 折线图——X 回合 Y 累计 σ，每点带因果 tooltip
+function renderWorldlineChart(causeHistory, turnDeltas, cumulative) {
+  const n = causeHistory.length;
+  if (n < 2) return make('div', '轨迹不足两回合');
+
+  const points = [];
+  let running = 0;
+  for (let i = 0; i < n; i++) {
+    const td = typeof turnDeltas[i] === 'number' ? turnDeltas[i] : (cumulative / n);
+    running += td;
+    points.push({ turn: i + 1, cumulative: running, cause: causeHistory[i] });
+  }
+  // 对齐真实累计值（若 turnDelta 缺失则按比例缩放，保证形状与终点正确）
+  const lastRunning = points[points.length - 1].cumulative;
+  if (lastRunning > 0.01 && Math.abs(lastRunning - cumulative) > 0.01) {
+    const scale = cumulative / lastRunning;
+    points.forEach(p => { p.cumulative *= scale; });
+  }
+
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const w = 340, h = 96, pad = { l: 8, r: 8, t: 10, b: 18 };
+  const maxY = Math.max(cumulative, 0.5);
+  const xStep = (w - pad.l - pad.r) / Math.max(1, n - 1);
+  const yScale = (v) => h - pad.b - (v / maxY) * (h - pad.t - pad.b);
+
+  const svg = document.createElementNS(svgNs, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('class', 'worldline-chart');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+  const path = document.createElementNS(svgNs, 'polyline');
+  path.setAttribute('points', points.map((p, i) => `${pad.l + i * xStep},${yScale(p.cumulative)}`).join(' '));
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', 'var(--gold-bright)');
+  path.setAttribute('stroke-width', '1.5');
+  path.setAttribute('stroke-linejoin', 'round');
+  svg.appendChild(path);
+
+  points.forEach((p, i) => {
+    const x = pad.l + i * xStep;
+    const y = yScale(p.cumulative);
+    const isLast = i === points.length - 1;
+    const c = document.createElementNS(svgNs, 'circle');
+    c.setAttribute('cx', x);
+    c.setAttribute('cy', y);
+    c.setAttribute('r', isLast ? 5 : 3);
+    c.setAttribute('class', isLast ? 'worldline-chart-current' : 'worldline-chart-point');
+    const title = document.createElementNS(svgNs, 'title');
+    title.textContent = `回合${p.turn} · 累计 ${p.cumulative.toFixed(1)}σ\n${p.cause}`;
+    c.appendChild(title);
+    svg.appendChild(c);
+
+    const tx = document.createElementNS(svgNs, 'text');
+    tx.setAttribute('x', x);
+    tx.setAttribute('y', h - 4);
+    tx.setAttribute('text-anchor', 'middle');
+    tx.setAttribute('class', 'worldline-chart-label');
+    tx.textContent = String(p.turn);
+    svg.appendChild(tx);
+  });
+
+  return svg;
+}
+
+function renderStakesPanel(aftermath, caseState) {
+  if (!aftermath || !caseState) return null;
+
+  // round 048: 优先用 LLM 推演的真实世界线偏移，公式作 fallback
+  const stateChanges = aftermath.stateChanges || aftermath.state_changes || [];
+  const csWorldState = caseState.caseState || caseState || {};
+  const csWorldLineShift = csWorldState.worldLineShift || {};
+  const afterWorldLineShift = aftermath.worldLineShift || {};
+
+  // 本回合偏移：LLM 推演的 turnDelta，fallback 到公式
+  const turnDelta = typeof afterWorldLineShift.turnDelta === 'number'
+    ? afterWorldLineShift.turnDelta
+    : stateChanges.length * 0.4;
+  // 累计偏移：applyAftermath 累积的 totalDelta，fallback 到公式
+  const cumulative = typeof csWorldLineShift.totalDelta === 'number'
+    ? csWorldLineShift.totalDelta
+    : ((caseState.stateChangeHistory || (caseState.caseState && caseState.caseState.stateChangeHistory) || []).length * 0.4
+       + Number(csWorldState.riskIndicators?.overall ?? caseState.riskOverall ?? 0) * 0.3);
+
+  // 受影响领域（LLM 推演）
+  const domains = afterWorldLineShift.domains || csWorldLineShift.domains || [];
+  // 因果说明（LLM 给玩家的解释）
+  const cause = afterWorldLineShift.cause || csWorldLineShift.lastCause || null;
+
+  const riskOverall = Number(
+    csWorldState.riskIndicators?.overall
+    ?? caseState.riskOverall
+    ?? (caseState.riskIndicators && caseState.riskIndicators.overall)
+    ?? 0
+  );
+  const riskLevel = riskOverall >= 4 ? '极高' : riskOverall >= 3 ? '高' : riskOverall >= 1.5 ? '中' : '低';
+
+  const visibleChange = stateChanges.find((c) => c.visibility === 'player_visible') || stateChanges[0];
+  const fromStr = visibleChange
+    ? (typeof visibleChange.from === 'object' ? JSON.stringify(visibleChange.from) : String(visibleChange.from ?? '?'))
+    : '';
+  const toStr = visibleChange
+    ? (typeof visibleChange.to === 'object' ? JSON.stringify(visibleChange.to) : String(visibleChange.to ?? '?'))
+    : '';
+  const target = visibleChange ? (visibleChange.target || visibleChange.node || '未知节点') : '';
+  const leveraged = visibleChange
+    ? `${target}: ${fromStr} → ${toStr}`
+    : '（本回合无可见的撬动）';
+
+  const nextDeadlineRaw = csWorldState.nextDeadline || caseState.nextDeadline || aftermath.nextDeadline;
+  let nextDeadlineText = '未知';
+  if (nextDeadlineRaw && typeof nextDeadlineRaw === 'object') {
+    nextDeadlineText = `${nextDeadlineRaw.label || '截止线'} · ${nextDeadlineRaw.date || ''}`.trim();
+  } else if (nextDeadlineRaw) {
+    nextDeadlineText = String(nextDeadlineRaw);
+  }
+
+  // round 051: 重量标签 + 阶段性判语 + 轨迹数据
+  const weight = driftWeightLabel(cumulative);
+  const severity = weight.severity;
+  const verdict = verdictForWorldline(cumulative, domains);
+  const causeHistory = Array.isArray(csWorldLineShift.causeHistory) ? csWorldLineShift.causeHistory : [];
+  const turnDeltas = Array.isArray(csWorldLineShift.turnDeltaHistory) ? csWorldLineShift.turnDeltaHistory : [];
+
+  const panel = make('div', null, 'stakes-panel');
+  panel.dataset.severity = severity;
+  panel.appendChild(make('div', '本回合后果', 'stakes-header'));
+
+  // round 051: 本回合偏移 hero 区——巨字号让玩家一眼感到这回合推了多少
+  const hero = make('div', null, 'stakes-hero');
+  const heroValue = make('div', null, 'stakes-turn-delta-hero');
+  const turnDeltaStr = turnDelta >= 0 ? `+${turnDelta.toFixed(1)}σ` : `${turnDelta.toFixed(1)}σ`;
+  heroValue.appendChild(make('span', turnDeltaStr, 'stakes-hero-value'));
+  heroValue.appendChild(make('span', '本回合偏移', 'stakes-hero-label'));
+  hero.appendChild(heroValue);
+
+  const heroMeta = make('div', null, 'stakes-hero-meta');
+  const cumStr = cumulative >= 0 ? `累计 +${cumulative.toFixed(1)}σ` : `累计 ${cumulative.toFixed(1)}σ`;
+  heroMeta.appendChild(make('span', cumStr, 'stakes-cumulative'));
+  heroMeta.appendChild(make('span', weight.label, 'stakes-weight-label'));
+  hero.appendChild(heroMeta);
+  panel.appendChild(hero);
+
+  // round 051: 阶段性判语——告诉玩家"你的世界线正朝 X 收敛"
+  if (verdict) {
+    const verdictEl = make('div', null, 'stakes-verdict');
+    verdictEl.appendChild(make('span', '判语', 'stakes-verdict-label'));
+    verdictEl.appendChild(make('span', verdict, 'stakes-verdict-text'));
+    panel.appendChild(verdictEl);
+  }
+
+  // 因果解释（LLM 给玩家的"为什么这个选择导致这个偏移"）
+  if (cause) {
+    const causeRow = make('div', null, 'stakes-cause');
+    causeRow.appendChild(make('span', '因果', 'stakes-label'));
+    causeRow.appendChild(make('span', cause, 'stakes-cause-text'));
+    panel.appendChild(causeRow);
+  }
+
+  // round 051: 世界线轨迹 SVG 折线图——替换文字列表，给"形状感"
+  if (causeHistory.length > 1) {
+    const chartRow = make('div', null, 'stakes-chart-row');
+    chartRow.appendChild(make('span', '世界线轨迹', 'stakes-label'));
+    const chart = renderWorldlineChart(causeHistory, turnDeltas, cumulative);
+    chartRow.appendChild(chart);
+    panel.appendChild(chartRow);
+  }
+
+  // 受影响领域
+  if (domains.length > 0) {
+    const domainsRow = make('div', null, 'stakes-row stakes-domains');
+    domainsRow.appendChild(make('span', '受影响领域', 'stakes-label'));
+    const domainsText = domains.map((d) => {
+      const map = { physics: '物理学', jewish_safety: '犹太人安全', nazi_ideology: '纳粹意识形态', diplomacy: '外交', academia: '学术界', politics: '政治', military: '军事', science: '科学', economy: '经济' };
+      return map[d] || d;
+    }).join('、');
+    domainsRow.appendChild(make('span', domainsText, 'stakes-value'));
+    panel.appendChild(domainsRow);
+  }
+
+  // round 051: 风险/下一节点降级为紧凑行，让 hero + 判语成为视觉焦点
+  const metaLow = make('div', null, 'stakes-meta-low');
+  metaLow.appendChild(make('span', `风险 ${riskLevel}`));
+  metaLow.appendChild(make('span', `下一节点 ${nextDeadlineText}`));
+  panel.appendChild(metaLow);
+
+  const leveragedRow = make('div', null, 'stakes-leveraged');
+  leveragedRow.appendChild(make('span', '你撬动了', 'stakes-label'));
+  leveragedRow.appendChild(make('span', leveraged, 'stakes-value'));
+  panel.appendChild(leveragedRow);
+
+  return panel;
 }
 
 // ─── Aftermath ───
@@ -356,6 +689,11 @@ function renderAftermath(aftermath) {
   showOnly(dom.aftermathSection);
   updateStageTrack('aftermath');
   clearEl(dom.aftermathSection);
+
+  const stakesPanel = renderStakesPanel(aftermath, turnState.caseStateBody);
+  if (stakesPanel) {
+    dom.aftermathSection.appendChild(stakesPanel);
+  }
 
   dom.aftermathSection.appendChild(make('div', 'AFTERMATH REPORT', 'section-eyebrow'));
   dom.aftermathSection.appendChild(make('h2', `回合 ${turnState.turn} · 推演结果`));
@@ -418,6 +756,51 @@ function renderAftermath(aftermath) {
     dom.aftermathSection.appendChild(list);
   }
 
+  // round 048: 渲染新节点（之前被丢弃）
+  if (Array.isArray(aftermath?.newNodes) && aftermath.newNodes.length > 0) {
+    dom.aftermathSection.appendChild(make('div', '世界线新增节点', 'intel-section-title'));
+    const list = make('ul', null, 'new-nodes-list');
+    aftermath.newNodes.forEach((node) => {
+      const li = make('li');
+      li.appendChild(make('strong', node.label || node.id || '未命名节点'));
+      if (node.statusLabel || node.status) {
+        li.appendChild(make('small', `状态：${node.statusLabel || node.status}`));
+      }
+      list.appendChild(li);
+    });
+    dom.aftermathSection.appendChild(list);
+  }
+
+  // round 048: 渲染新关系连线（之前被丢弃）
+  if (Array.isArray(aftermath?.newEdges) && aftermath.newEdges.length > 0) {
+    dom.aftermathSection.appendChild(make('div', '世界线新增关系', 'intel-section-title'));
+    const list = make('ul', null, 'new-edges-list');
+    aftermath.newEdges.forEach((edge) => {
+      const li = make('li');
+      const strengthLabel = { weak: '弱', medium: '中', strong: '强' }[edge.strength] || edge.strength || '中';
+      li.appendChild(make('span', `${edge.from} → ${edge.to}：${edge.label || '(无标签)'}（强度：${strengthLabel}）`));
+      list.appendChild(li);
+    });
+    dom.aftermathSection.appendChild(list);
+  }
+
+  // round 048: 渲染历史标记（之前被丢弃）
+  if (Array.isArray(aftermath?.historyFlags) && aftermath.historyFlags.length > 0) {
+    const flagsRow = make('div', null, 'aftermath-flags');
+    flagsRow.appendChild(make('span', '历史标记：', 'stakes-label'));
+    const visibleFlags = aftermath.historyFlags.filter((f) => f !== 'fictional_branch');
+    const flagText = visibleFlags.length > 0 ? visibleFlags.join('、') : '虚构分叉已记录';
+    flagsRow.appendChild(make('span', flagText, 'stakes-value'));
+    dom.aftermathSection.appendChild(flagsRow);
+  }
+
+  // round 048: 需要人工审核的标记（之前被丢弃）
+  if (aftermath?.requiresHumanApproval) {
+    const warn = make('div', null, 'aftermath-human-approval');
+    warn.appendChild(make('strong', '⚠ 此推演需要人工审核'));
+    dom.aftermathSection.appendChild(warn);
+  }
+
   if (aftermath?.nextIntelCard) {
     const next = make('div', null, 'aftermath-next');
     next.appendChild(make('h3', '下一回合情报卡预告'));
@@ -440,6 +823,7 @@ async function fetchCaseState() {
     const body = await res.json();
     if (body && body.caseState) {
       turnState.markedClues = body.caseState.markedClues || {};
+      turnState.caseStateBody = body;
     }
     return body;
   } catch {
@@ -508,7 +892,17 @@ async function onActionChosen(option) {
   turnState.chosenOption = option;
   setStageBadge('推演中', 'info');
   setFooterStatus('叙事分析组推演后果中…');
-  showLoading('叙事分析组正在推演你选择的后果…');
+
+  // round 051: 点击瞬间用 estimatedDrift 预览漂移条，让玩家立刻感到"我推了一下历史"
+  const currentCumulative = turnState.caseStateBody?.caseState?.worldLineShift?.totalDelta || 0;
+  const previewTurnDelta = option.estimatedDrift?.turnDelta || 0;
+  const previewCumulative = Math.max(0, Math.min(5, currentCumulative + previewTurnDelta));
+  if (previewTurnDelta > 0) {
+    renderWorldlineDrift(previewCumulative);
+    document.getElementById('worldlineDrift')?.classList.add('drift-preview');
+  }
+
+  showLoading('叙事分析组正在推演你选择的后果…', 'aftermath');
 
   try {
     const response = await fetch('/api/turn/aftermath', {
@@ -516,14 +910,18 @@ async function onActionChosen(option) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         turn: turnState.turn,
-        caseId: 'einstein-1933',
+        caseId: turnState.caseId || 'einstein-1933',
         playerChoiceId: option.id,
         playerChoiceLabel: option.label,
         narrativeContext: turnState.briefing?.intelCard?.body?.text || '',
-        worldState: turnState.situationRoom,
+        // round 048: 传 caseStateBody（后端会重编译为权威，但带上以防 caseId 不匹配）
+        worldState: turnState.caseStateBody?.caseState || turnState.situationRoom,
         intelCardTitle: turnState.briefing?.intelCard?.header?.title,
         briefingHistoryFlags: turnState.briefing?.historyFlags || [],
         situationRoomHistoryFlags: turnState.situationRoom?.historyFlags || [],
+        // round 048: 发玩家历史 + 标记的线索，让 aftermath prompt 看见因果
+        playerHistory: turnState.playerHistory || [],
+        markedClues: turnState.markedClues || {},
       }),
     });
     const started = await response.json();
@@ -533,12 +931,29 @@ async function onActionChosen(option) {
     if (snapshot.status !== 'succeeded') throw new Error(snapshot.error?.message || 'Aftermath 失败');
 
     turnState.aftermath = snapshot.result.aftermath;
+    // round 048: 更新 caseStateBody（后端返回的 worldState 含最新 worldLineShift）
+    if (snapshot.result.worldState) {
+      turnState.caseStateBody = turnState.caseStateBody || {};
+      turnState.caseStateBody.caseState = snapshot.result.worldState;
+      turnState.caseStateBody.stateChangeHistory = snapshot.result.worldState.stateChangeHistory || turnState.caseStateBody.stateChangeHistory || [];
+    }
+    // 累积玩家选择历史，下回合 prompt 会看见
+    turnState.playerHistory = [...(turnState.playerHistory || []), option.label].slice(-10);
     turnState.stage = 'complete';
+    document.getElementById('worldlineDrift')?.classList.remove('drift-preview');
+    stopLoading();
     renderAftermath(turnState.aftermath);
+    // round 048: aftermath 后用真实 worldLineShift 更新漂移条（覆盖预估预览）
+    const driftFromLLM = snapshot.result.worldState?.worldLineShift?.totalDelta;
+    if (typeof driftFromLLM === 'number') {
+      renderWorldlineDrift(driftFromLLM);
+    }
     setStageBadge(`回合 ${turnState.turn} 完成`, 'success');
     setFooterStatus('推演完成，可继续下一回合');
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    document.getElementById('worldlineDrift')?.classList.remove('drift-preview');
+    stopLoading();
     setStageBadge('推演失败', 'warn');
     setFooterStatus(`失败：${message}`);
     showOnly(null);
@@ -577,7 +992,7 @@ async function startNewTurn() {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        caseId: 'einstein-1933',
+        caseId: turnState.caseId || 'einstein-1933',
         turn: nextTurn,
         caseTitle: '爱因斯坦未离开德国',
         historicalAnchors: [
@@ -585,10 +1000,13 @@ async function startNewTurn() {
           '柏林物理学会存在犹太裔会员名单',
           '德国铀计划早期理论工作由理论物理研究所承担',
         ],
-        worldState: turnState.situationRoom,
+        // round 048: 发累积的 caseStateBody（含真实 worldLineShift + stateChangeHistory）
+        worldState: turnState.caseStateBody?.caseState || turnState.situationRoom,
         previousChoice: turnState.chosenOption
           ? { label: turnState.chosenOption.label, consequencePreview: turnState.chosenOption.consequencePreview }
           : null,
+        // round 048: 发玩家历史，让 briefing/situationRoom prompt 看见玩家路径
+        playerHistory: turnState.playerHistory || [],
         riskLevel: turnState.aftermath?.stateChanges?.some((sc) => sc.target === 'risk.overall') ? 2 : 1,
       }),
     });
@@ -597,6 +1015,11 @@ async function startNewTurn() {
 
     const snapshot = await pollJob(started.statusUrl);
     if (snapshot.status !== 'succeeded') throw new Error(snapshot.error?.message || '回合生成失败');
+
+    // round 048: 保留 playerHistory + caseStateBody 跨回合（不再重置为空）
+    const preservedPlayerHistory = turnState.playerHistory || [];
+    const preservedCaseStateBody = turnState.caseStateBody || null;
+    const preservedCaseId = turnState.caseId || 'einstein-1933';
 
     turnState = {
       turn: snapshot.result.turn,
@@ -608,15 +1031,18 @@ async function startNewTurn() {
       aftermath: null,
       historyFlags: snapshot.result.historyFlags || [],
       jobId: snapshot.jobId,
-      caseId: turnState.caseId || 'einstein-1933',
+      caseId: preservedCaseId,
       markedClues: {},
       currentTurnMarkedCount: 0,
+      playerHistory: preservedPlayerHistory,
+      caseStateBody: preservedCaseStateBody,
     };
 
     // 同步已标记线索（round 043）：从后端拉取 case state
     await fetchCaseState();
 
     setTurnCounter(turnState.turn);
+    stopLoading();
     renderBriefing(turnState.briefing);
 
     // 自动滚到态势面板入口（玩家看完情报卡后点"进入态势分析"）
@@ -628,6 +1054,14 @@ async function startNewTurn() {
 
     setStageBadge('情报卡已就位', 'success');
     setFooterStatus('请阅读情报卡，标记线索后进入态势分析');
+
+    // round 048: 用真实 worldLineShift（来自 caseStateBody.caseState.worldLineShift.totalDelta），公式作 fallback
+    const csBody = turnState.caseStateBody || {};
+    const driftFromLLM = csBody.caseState?.worldLineShift?.totalDelta;
+    const driftSigma = typeof driftFromLLM === 'number'
+      ? driftFromLLM
+      : ((csBody.stateChangeHistory || []).length * 0.4 + Number(csBody.caseState?.riskIndicators?.overall ?? 0) * 0.3);
+    renderWorldlineDrift(driftSigma);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     setStageBadge('生成失败', 'warn');
@@ -804,4 +1238,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initArchiveCabinet();
   setStageBadge('待命', 'idle');
   setFooterStatus('系统就绪');
+  playOpeningIfNeeded();
 });

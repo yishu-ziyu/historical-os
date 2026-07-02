@@ -9,6 +9,22 @@
 <body>
   <div class="grain"></div>
 
+  <div id="openingCinematic" class="opening-cinematic" aria-hidden="false">
+    <div class="opening-stage">
+      <div class="opening-date" id="openingDate">柏林 · 1933年10月17日 · 23:47</div>
+      <div class="opening-anomaly" id="openingAnomaly">异常已检出 — 历史档案 #B-XX-1933-0417</div>
+      <div class="opening-telegram" id="openingTelegram">
+        <span class="telegram-line">ALBERT EINSTEIN</span>
+        <span class="telegram-line">STATUS: NOT DEPARTED</span>
+        <span class="telegram-line">LAST SEEN: BERLIN</span>
+        <span class="telegram-line">BASELINE: SHOULD HAVE LEFT 1933-09</span>
+      </div>
+      <div class="opening-hook" id="openingHook">他本该已离开。他没有。他还不知道，自己的名字已出现在某份名单上。</div>
+      <div class="opening-mini-drift" id="openingMiniDrift"></div>
+    </div>
+    <button class="opening-skip" id="openingSkip" type="button">跳过</button>
+  </div>
+
   <main class="desk">
 
     <section id="archiveCabinet" class="archive-cabinet">
@@ -88,6 +104,22 @@
         <span class="turn-counter">回合 <em id="turnCounter">0</em></span>
       </div>
     </header>
+
+    <div id="worldlineDrift" class="worldline-drift" hidden>
+      <div class="drift-label">WORLDLINE DRIFT</div>
+      <div class="drift-bar">
+        <div class="drift-track"></div>
+        <div class="drift-cursor" id="driftCursor"></div>
+        <div class="drift-scale">
+          <span>0σ</span>
+          <span>+1σ</span>
+          <span>+2σ</span>
+          <span>+3σ</span>
+          <span>+5σ</span>
+        </div>
+      </div>
+      <div class="drift-current" id="driftCurrent">累计偏移 0.0σ</div>
+    </div>
 
     <section id="stageTrack" class="stage-track">
       <div class="stage-step" data-stage="briefing">

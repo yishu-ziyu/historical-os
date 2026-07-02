@@ -1,0 +1,8 @@
+=== 1. reset case ===
+{"ok":true,"reset":true}
+
+=== 2. start turn 1 (briefing + situation room) ===
+job1: job-mr30ykam-ula5qq
+..........................................................................................VERIFY ERROR: Error: turn1 timeout
+    at pollJob (file:///Users/mahaoxuan/Desktop/%E9%BB%91%E5%AE%A2%E6%9D%BE/%E6%9E%B6%E7%A9%BA%E5%8E%86%E5%8F%B2%E6%95%85%E4%BA%8B%E6%B8%B8%E6%88%8F/.ship/tasks/vibero-20260628-004/e2e/verify_causality.mjs:27:9)
+    at async main (file:///Users/mahaoxuan/Desktop/%E9%BB%91%E5%AE%A2%E6%9D%BE/%E6%9E%B6%E7%A9%BA%E5%8E%86%E5%8F%B2%E6%95%85%E4%BA%8B%E6%B8%B8%E6%88%8F/.ship/tasks/vibero-20260628-004/e2e/verify_causality.mjs:49:17)

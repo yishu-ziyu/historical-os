@@ -1,0 +1,90 @@
+=== 1. reset case ===
+{"ok":true,"reset":true}
+
+=== 2. start turn 1 (briefing + situation room) ===
+job1: job-mr31k9v1-e3vhrm
+............................
+--- T1 briefing title: 柏林物理学会会员名录异常比对报告
+--- T1 briefing text: 本报告基于1933年9月柏林物理学会（Deutsche Physikalische Gesellschaft, DPG）提交之会员登记册副本。登记册共载有效会员217人，其中具犹太血统或与犹太裔联姻者计48人，占总数约22.1%。
+
+重点关注对象：
+
+1. 阿尔伯特·爱因斯坦（Albert Einstein），会龄19年，登记住址柏林西区哈伯兰大街5号（Haberlandstr. 5, Berlin W）。原籍符腾堡王国乌尔姆，1896年放弃符腾堡国籍，目前持瑞士护照。
+
+2. 马克斯·玻恩（M
+--- T1 contradictions: 2
+--- T1 clues: 5
+
+--- T1 situation anchor: 异常锚点：爱因斯坦滞留柏林
+--- T1 action options: 4
+   * action-conservative-leave | 安排爱因斯坦以学术会议名义离境 | riskCost=1 intelReturn=medium | estDrift.turnDelta=0.3 | reason=爱因斯坦按历史轨迹离开但推迟数周，世界线轻微收束
+   * action-aggressive-stay | 说服爱因斯坦公开发表反纳粹声明并留守 | riskCost=2 intelReturn=high | estDrift.turnDelta=1.6 | reason=爱因斯坦公开对抗纳粹将根本改变德国知识界与第三方的关系曲线
+   * action-intel-monitor | 渗透普鲁士科学院，监控反犹清洗动向 | riskCost=0 intelReturn=medium | estDrift.turnDelta=0.1 | reason=纯情报收集，对世界线无显著扰动
+   * action-time-sensitive-passport | 时间敏感：紧急办理瑞士护照与离境文件 | riskCost=1 intelReturn=low | estDrift.turnDelta=0.5 | reason=走最自然的离境通道，世界线偏移温和
+--- T1 worldState.worldLineShift: {
+  totalDelta: 0,
+  turnDelta: 0,
+  domains: [],
+  lastCause: null,
+  causeHistory: []
+}
+--- T1 previousChoice: null
+
+=== 3. submit aftermath: pick "说服爱因斯坦公开发表反纳粹声明并留守" (turnDelta=1.6) ===
+aftermath job: job-mr31lh6k-thrh6o
+........
+--- aftermath1 narrative: 值班台报告（第1933-03-19期·机密）。经我方介入，爱因斯坦已转变观望立场，同意在卡普特寓所发表面向国际舆论的反纳粹声明，同时拒绝离德。此决策即时引发两重后果：其一，柏林物理学会会员名录异常比对报告显示，盖世太保正以学会为筛网预置清洗名单，爱因斯坦的滞留令其直接暴露于该名单核心区；其二，声明尚未见诸报端，但卡普特寓所周边已出现不明便衣活动，疑为党卫军安全局（SD）初步外线部署。当前距《授权法》签署仅余四日，授权法一旦生效，爱因斯坦将丧失所有法律保护，行动窗口正在收窄。建议下一阶段转向紧急撤离预案，否则锚点信号将随纳粹机器加速运转而急剧放大。累积偏移已达0.7σ，物理与犹太安全双线并行恶化
+--- aftermath1 stateChanges: 4
+   * character.einstein.public_stance: hesitating → publicly_anti_nazi | evidence=玩家选择说服爱因斯坦公开发表反纳粹声明并留守柏林，爱因斯坦已改变沉默态度，主动面向公共舆论发表政治表态。
+   * character.einstein.physical_location: uncertain → berlin_resident | evidence=玩家选择说服爱因斯坦留守而非流亡，其居住地锚定于柏林威廉皇帝物理研究所周边。
+   * node-anchor-einstein-1933.intensity: baseline → elevated | evidence=情报卡揭示柏林物理学会会员名录存在异常比对痕迹，爱因斯坦作为学会核心成员，其滞留决策直接放大锚点信号强度。
+   * node-enabling-act.gestapo_attention: 0 → 1 | evidence=爱因斯坦公开发表反纳粹声明将在《授权法》签署前的政治真空窗口期触发盖世太保初步关注，但尚未上升至正式监控层级。
+--- aftermath1 worldLineShift: {
+  turnDelta: 0.7,
+  domains: [ 'physics', 'jewish_safety', 'diplomacy' ],
+  cause: '说服爱因斯坦公开发表反纳粹声明并留守柏林，直接将其从历史流亡轨道拽回，在物理共同体存续、犹太知识分子安全及国际学术外交三个领域同时产生可观测偏移。'
+}
+--- aftermath1 newNodes: 2
+--- aftermath1 requiresHumanApproval: false
+--- aftermath1 finalWorldState.worldLineShift: {
+  totalDelta: 0.7,
+  turnDelta: 0.7,
+  domains: [ 'physics', 'jewish_safety', 'diplomacy' ],
+  lastCause: '说服爱因斯坦公开发表反纳粹声明并留守柏林，直接将其从历史流亡轨道拽回，在物理共同体存续、犹太知识分子安全及国际学术外交三个领域同时产生可观测偏移。',
+  causeHistory: [
+    '说服爱因斯坦公开发表反纳粹声明并留守柏林，直接将其从历史流亡轨道拽回，在物理共同体存续、犹太知识分子安全及国际学术外交三个领域同时产生可观测偏移。'
+  ]
+}
+
+=== 4. start turn 2 (看 previousChoice + worldLineShift 是否进入 prompt) ===
+job2: job-mr31ltk4-bz3bp3
+....................
+--- T2 briefing title: 柏林物理学会会员名录异常增补条目比对报告（1933年3月第二周）
+--- T2 briefing text: 本报告由柏林物理学会（Deutsche Physikalische Gesellschaft, DPG）秘书处会同盖世太保外勤联络员，于 1933 年 3 月 12 日至 3 月 19 日间，就学会会员名录（Mitgliederverzeichnis）最新一期印制底稿进行交叉比对后形成。
+
+比对方法如下：将 1932 年版正式名录与 1933 年 3 月拟交付印厂之底稿逐页核校，标注所有新增（Neuaufnahme）、除名（Streichung）与背景信息变动（Statusänderung）条目
+--- T2 worldState.worldLineShift: {
+  totalDelta: 0.7,
+  turnDelta: 0.7,
+  domains: [ 'physics', 'jewish_safety', 'diplomacy' ],
+  lastCause: '说服爱因斯坦公开发表反纳粹声明并留守柏林，直接将其从历史流亡轨道拽回，在物理共同体存续、犹太知识分子安全及国际学术外交三个领域同时产生可观测偏移。',
+  causeHistory: [
+    '说服爱因斯坦公开发表反纳粹声明并留守柏林，直接将其从历史流亡轨道拽回，在物理共同体存续、犹太知识分子安全及国际学术外交三个领域同时产生可观测偏移。'
+  ]
+}
+--- T2 previousChoice: { id: 'action-aggressive-stay', label: '说服爱因斯坦公开发表反纳粹声明并留守' }
+--- T2 stateChangeHistory count: 4
+
+--- T2 situation anchor: 异常锚点
+--- T2 action options: 4
+   * action-soften-statement | 软化声明措辞 | estDrift.turnDelta=0.1 totalDelta=0.8 | reason=软化声明仅微弱改变轨迹，但为爱因斯坦争取几天缓冲窗口。
+   * action-channel-belgian-consulate | 联络比利时领事馆 | estDrift.turnDelta=0.5 totalDelta=1.2 | reason=成功建立离境通道将根本改变爱因斯坦滞留柏林这一异常锚点的走向，显著推高偏移。
+   * action-burn-papers-and-flee | 立刻焚毁敏感文件并仓促出逃 | estDrift.turnDelta=1.6 totalDelta=2.3 | reason=爱因斯坦脱离柏林直接重塑三大领域基线，是本回合最高偏移路径。
+   * action-contact-planck-via-academy | 通过普朗克与科学院斡旋 | estDrift.turnDelta=0.3 totalDelta=1 | reason=普朗克斡旋在历史上部分成功，但为爱因斯坦争取的缓冲有限，偏移温和。
+--- T2 previousChoiceImpact: 上回合推动爱因斯坦公开反纳粹立场并确认其柏林居留，直接导致盖世太保非正式关注清单生成（gestapo_attention: 0→1），同时激活异常锚点强度（baseline→elevated）。声明已草拟但尚未正式发表，发表前的措辞窗口仍然存在。
+
+=== 5. 因果链判定 ===
+回合1 aftermath turnDelta: 0.7
+回合2 累计 totalDelta: 0.7 (应 > 0 且包含回合1贡献)
+回合2 previousChoice: 说服爱因斯坦公开发表反纳粹声明并留守 (应为 "说服爱因斯坦公开发表反纳粹声明并留守")
+因果链闭合: YES ✓

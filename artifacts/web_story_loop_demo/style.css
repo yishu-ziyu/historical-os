@@ -1026,3 +1026,967 @@ html, body {
   cursor: pointer;
 }
 .modal-close-btn:hover { background: var(--gold); color: var(--wood); }
+
+/* ─── 开场序列（round 048 增强：电报滴答/红字 glitch/逐字打字/mini drift 真填）─── */
+.opening-cinematic {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(122, 42, 29, 0.08), transparent 60%),
+    #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--paper);
+  font-family: "Songti SC", "STSong", "SimSun", Georgia, serif;
+  transition: opacity 800ms ease;
+  overflow: hidden;
+}
+.opening-cinematic[hidden] { display: none; }
+.opening-cinematic.stage-done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 扫描线背景纹理 */
+.opening-cinematic::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(237, 226, 200, 0.015) 2px,
+    rgba(237, 226, 200, 0.015) 3px
+  );
+  pointer-events: none;
+  animation: scanlineDrift 8s linear infinite;
+}
+
+.opening-stage {
+  max-width: 640px;
+  padding: 0 32px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+.opening-date {
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  letter-spacing: 0.25em;
+  color: var(--muted);
+  opacity: 0;
+}
+.opening-cinematic.stage-a .opening-date {
+  animation: typewriterReveal 1600ms steps(28) forwards;
+}
+
+.opening-anomaly {
+  margin-top: 28px;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: var(--red-bright);
+  border: 1px solid var(--red);
+  padding: 8px 16px;
+  display: inline-block;
+  opacity: 0;
+  position: relative;
+}
+.opening-cinematic.stage-b .opening-anomaly {
+  animation: anomalyBlinkIn 600ms ease forwards, redGlitch 3s ease-in-out 600ms infinite;
+}
+
+.opening-telegram {
+  margin-top: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  color: var(--gold-bright);
+  letter-spacing: 0.15em;
+  opacity: 0;
+  position: relative;
+}
+.opening-telegram .telegram-line {
+  display: block;
+  opacity: 0;
+}
+.opening-cinematic.stage-c .opening-telegram { opacity: 1; }
+.opening-cinematic.stage-c .telegram-line {
+  animation: telegramDwell 500ms ease forwards;
+}
+.opening-cinematic.stage-c .telegram-line:nth-child(1) { animation-delay: 0ms; }
+.opening-cinematic.stage-c .telegram-line:nth-child(2) { animation-delay: 500ms; }
+.opening-cinematic.stage-c .telegram-line:nth-child(3) { animation-delay: 1000ms; }
+.opening-cinematic.stage-c .telegram-line:nth-child(4) { animation-delay: 1500ms; }
+
+/* 电报滴答光标 */
+.opening-telegram::after {
+  content: '▮';
+  color: var(--gold-bright);
+  animation: cursorBlink 600ms steps(2) infinite;
+  margin-left: 4px;
+  opacity: 0;
+}
+.opening-cinematic.stage-c .opening-telegram::after {
+  opacity: 1;
+  animation-delay: 2000ms;
+}
+
+.opening-hook {
+  margin-top: 48px;
+  font-size: 19px;
+  color: var(--paper);
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+  opacity: 0;
+}
+.opening-cinematic.stage-d .opening-hook {
+  animation: hookReveal 1800ms ease forwards;
+}
+
+.opening-mini-drift {
+  margin-top: 56px;
+  height: 6px;
+  width: 280px;
+  margin-left: auto;
+  margin-right: auto;
+  background: rgba(138, 109, 42, 0.15);
+  border: 1px solid rgba(138, 109, 42, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0;
+  position: relative;
+}
+.opening-cinematic.stage-e .opening-mini-drift {
+  opacity: 1;
+  animation: miniDriftGrow 800ms ease forwards;
+}
+.opening-mini-drift::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--green) 0%, var(--gold-bright) 100%);
+  box-shadow: 0 0 8px var(--gold-bright);
+}
+.opening-cinematic.stage-e .opening-mini-drift::after {
+  animation: miniDriftFill 1400ms cubic-bezier(0.2, 0.8, 0.2, 1) 300ms forwards;
+}
+/* mini drift 刻度标记 */
+.opening-mini-drift::before {
+  content: '+0.5σ';
+  position: absolute;
+  right: 0;
+  top: -20px;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  color: var(--gold-bright);
+  letter-spacing: 0.1em;
+  opacity: 0;
+}
+.opening-cinematic.stage-e .opening-mini-drift::before {
+  animation: openingFade 600ms ease 1500ms forwards;
+}
+
+.opening-skip {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 200ms;
+  z-index: 1001;
+}
+.opening-skip:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.desk.intro-pending {
+  opacity: 0;
+  pointer-events: none;
+}
+.desk {
+  transition: opacity 800ms ease;
+}
+
+/* ─── 世界线漂移指示器（round 048 增强：脉动光晕/5σ撕裂/刻度均匀）─── */
+.worldline-drift {
+  margin-bottom: 32px;
+  padding: 16px 20px;
+  border: 1px solid rgba(138, 109, 42, 0.25);
+  border-radius: 4px;
+  background:
+    linear-gradient(135deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.15) 100%);
+  animation: cardIn 400ms ease;
+  position: relative;
+  overflow: hidden;
+}
+.worldline-drift[hidden] { display: none; }
+
+/* critical 严重度时加撕裂视觉 */
+.worldline-drift[data-severity="critical"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    transparent 8px,
+    rgba(122, 42, 29, 0.12) 8px,
+    rgba(122, 42, 29, 0.12) 9px
+  );
+  pointer-events: none;
+  animation: tearShift 2s linear infinite;
+}
+.worldline-drift[data-severity="critical"] .drift-label {
+  color: var(--red-bright);
+  animation: criticalPulse 1.2s ease-in-out infinite;
+}
+
+.drift-label {
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.drift-label::before {
+  content: '●';
+  font-size: 8px;
+  color: var(--red-bright);
+  animation: cursorBlink 1.4s steps(2) infinite;
+}
+
+.drift-bar {
+  position: relative;
+  height: 32px;
+  margin-bottom: 10px;
+}
+
+.drift-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg,
+    var(--green) 0%,
+    var(--green) 18%,
+    var(--gold-bright) 35%,
+    var(--gold-bright) 55%,
+    var(--red-bright) 75%,
+    var(--red) 100%);
+  border-radius: 2px;
+  opacity: 0.55;
+  box-shadow: 0 0 8px rgba(138, 109, 42, 0.2);
+}
+
+/* 危险区域刻度标记（3σ-5σ 区间加底色）*/
+.drift-track::after {
+  content: '';
+  position: absolute;
+  left: 60%;
+  right: 0;
+  top: -2px;
+  bottom: -2px;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0,
+    transparent 3px,
+    rgba(122, 42, 29, 0.2) 3px,
+    rgba(122, 42, 29, 0.2) 4px
+  );
+  border-radius: 2px;
+}
+
+.drift-cursor {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 12px var(--green), 0 0 24px rgba(61, 90, 58, 0.4);
+  transition: left 800ms cubic-bezier(0.2, 0.8, 0.2, 1), background 400ms, box-shadow 400ms;
+  z-index: 2;
+  animation: cursorPulse 2s ease-in-out infinite;
+}
+.worldline-drift[data-severity="mid"] .drift-cursor {
+  background: var(--gold-bright);
+  box-shadow: 0 0 14px var(--gold-bright), 0 0 28px rgba(201, 165, 90, 0.5);
+}
+.worldline-drift[data-severity="high"] .drift-cursor {
+  background: var(--red-bright);
+  box-shadow: 0 0 16px var(--red-bright), 0 0 32px rgba(177, 68, 68, 0.5);
+  animation: cursorPulseFast 1s ease-in-out infinite;
+}
+.worldline-drift[data-severity="critical"] .drift-cursor {
+  background: var(--red);
+  box-shadow: 0 0 20px var(--red), 0 0 40px rgba(122, 42, 29, 0.7);
+  animation: cursorPulseCritical 0.6s ease-in-out infinite;
+}
+
+.drift-scale {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+.drift-current {
+  margin-top: 16px;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: var(--green);
+  text-align: right;
+  transition: color 400ms;
+  font-weight: 600;
+}
+
+/* 严重度颜色 */
+.worldline-drift[data-severity="low"] .drift-current { color: var(--green); }
+.worldline-drift[data-severity="mid"] .drift-current { color: var(--gold-bright); }
+.worldline-drift[data-severity="high"] .drift-current { color: var(--red-bright); }
+.worldline-drift[data-severity="critical"] .drift-current {
+  color: var(--red);
+  text-shadow: 0 0 8px rgba(122, 42, 29, 0.6);
+}
+
+/* ─── 回合后果面板（round 048 增强：severity 颜色/因果/领域/突出撬动）─── */
+.stakes-panel {
+  background:
+    linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 100%);
+  border: 1px solid rgba(138, 109, 42, 0.3);
+  border-left: 3px solid var(--gold);
+  border-radius: 2px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  animation: stakesAppear 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+}
+.stakes-panel[data-severity="mid"] { border-left-color: var(--gold-bright); }
+.stakes-panel[data-severity="high"] {
+  border-left-color: var(--red-bright);
+  box-shadow: inset 4px 0 12px rgba(177, 68, 68, 0.15);
+}
+.stakes-panel[data-severity="critical"] {
+  border-left-color: var(--red);
+  border-left-width: 4px;
+  box-shadow: inset 4px 0 16px rgba(122, 42, 29, 0.25);
+  animation: stakesCriticalAppear 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.stakes-header {
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--gold);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(138, 109, 42, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stakes-panel[data-severity="high"] .stakes-header,
+.stakes-panel[data-severity="critical"] .stakes-header {
+  color: var(--red-bright);
+}
+.stakes-header::before {
+  content: '⚠';
+  font-size: 13px;
+  opacity: 0.7;
+}
+.stakes-panel[data-severity="low"] .stakes-header::before { content: '○'; }
+
+.stakes-row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 16px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-bottom: 1px dotted rgba(138, 109, 42, 0.12);
+}
+.stakes-row:last-of-type { border-bottom: none; }
+
+.stakes-row-drift .stakes-value {
+  font-family: "Courier New", monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.stakes-panel[data-severity="mid"] .stakes-row-drift .stakes-value { color: var(--gold-bright); }
+.stakes-panel[data-severity="high"] .stakes-row-drift .stakes-value { color: var(--red-bright); }
+.stakes-panel[data-severity="critical"] .stakes-row-drift .stakes-value { color: var(--red); }
+
+.stakes-label {
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+}
+
+.stakes-value {
+  font-size: 15px;
+  color: var(--paper);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.stakes-cumulative {
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  color: var(--gold-bright);
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  border: 1px solid rgba(138, 109, 42, 0.25);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* 因果解释（round 048 新增）*/
+.stakes-cause {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px dotted rgba(138, 109, 42, 0.12);
+  background: rgba(138, 109, 42, 0.04);
+  margin: 4px -8px 4px 0;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: 2px;
+}
+.stakes-cause .stakes-label { color: var(--gold-bright); }
+.stakes-cause-text {
+  font-size: 14px;
+  color: var(--paper);
+  line-height: 1.6;
+  font-style: italic;
+  border-left: 2px solid var(--gold);
+  padding-left: 12px;
+}
+
+/* 因果历史（round 049 新增）——世界线轨迹 */
+.stakes-cause-history {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  padding: 12px 8px;
+  border-bottom: 1px dotted rgba(138, 109, 42, 0.12);
+  background: rgba(138, 109, 42, 0.04);
+  margin: 4px -8px 4px 0;
+  border-radius: 2px;
+}
+.stakes-cause-history .stakes-label {
+  color: var(--gold-bright);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+.cause-history-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+.cause-history-item {
+  position: relative;
+  padding: 6px 0 6px 12px;
+  font-size: 13px;
+  color: var(--paper);
+  line-height: 1.5;
+  border-left: 2px solid var(--gold);
+  margin-bottom: 4px;
+}
+.cause-history-item:last-child {
+  border-left-color: var(--red-bright);
+  background: rgba(184, 51, 51, 0.06);
+}
+.cause-history-turn {
+  display: inline-block;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  margin-right: 8px;
+  min-width: 48px;
+}
+.cause-history-text {
+  color: var(--paper);
+  font-style: italic;
+}
+
+/* 受影响领域（round 048 新增）*/
+.stakes-domains .stakes-value {
+  color: var(--gold-bright);
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+
+.stakes-leveraged {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(138, 109, 42, 0.2);
+  background: rgba(138, 109, 42, 0.06);
+  border-radius: 2px;
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 16px;
+  align-items: baseline;
+}
+.stakes-leveraged .stakes-value {
+  color: var(--gold-bright);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* ─── round 051: 本回合偏移 hero 区（巨字号突出）+ 重量标签 ─── */
+.stakes-hero {
+  padding: 18px 0 14px;
+  border-bottom: 1px dotted rgba(138, 109, 42, 0.12);
+  margin-bottom: 14px;
+}
+.stakes-turn-delta-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.stakes-hero-value {
+  font-family: "Courier New", monospace;
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: var(--gold-bright);
+  text-shadow: 0 0 18px rgba(201, 165, 90, 0.25);
+  transition: color 300ms, text-shadow 300ms;
+}
+.stakes-panel[data-severity="mid"] .stakes-hero-value { color: var(--gold-bright); }
+.stakes-panel[data-severity="high"] .stakes-hero-value {
+  color: var(--red-bright);
+  text-shadow: 0 0 18px rgba(177, 68, 68, 0.3);
+}
+.stakes-panel[data-severity="critical"] .stakes-hero-value {
+  color: var(--red);
+  text-shadow: 0 0 22px rgba(122, 42, 29, 0.5);
+}
+.stakes-hero-label {
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+.stakes-hero-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.stakes-hero-meta .stakes-cumulative {
+  font-size: 13px;
+}
+.stakes-weight-label {
+  font-family: "Songti SC", Georgia, serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  padding: 2px 10px;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  background: rgba(138, 109, 42, 0.08);
+  transition: color 300ms, border-color 300ms;
+}
+.stakes-panel[data-severity="mid"] .stakes-weight-label { color: var(--gold-bright); border-color: var(--gold-bright); }
+.stakes-panel[data-severity="high"] .stakes-weight-label { color: var(--red-bright); border-color: var(--red-bright); }
+.stakes-panel[data-severity="critical"] .stakes-weight-label { color: var(--red); border-color: var(--red); }
+
+/* round 051: 阶段性判语——告诉玩家世界线正朝哪收敛 */
+.stakes-verdict {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: linear-gradient(90deg, rgba(138, 109, 42, 0.1), transparent);
+  border-left: 2px solid var(--gold);
+  border-radius: 0 2px 2px 0;
+}
+.stakes-panel[data-severity="high"] .stakes-verdict {
+  border-left-color: var(--red-bright);
+  background: linear-gradient(90deg, rgba(177, 68, 68, 0.1), transparent);
+}
+.stakes-panel[data-severity="critical"] .stakes-verdict {
+  border-left-color: var(--red);
+  background: linear-gradient(90deg, rgba(122, 42, 29, 0.15), transparent);
+}
+.stakes-verdict-label {
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--gold);
+}
+.stakes-verdict-text {
+  font-size: 15px;
+  color: var(--paper);
+  line-height: 1.6;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* round 051: 世界线轨迹 SVG 折线图 */
+.stakes-chart-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px dotted rgba(138, 109, 42, 0.12);
+}
+.worldline-chart {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  display: block;
+}
+.worldline-chart-point {
+  fill: var(--gold);
+  transition: r 160ms;
+}
+.worldline-chart-point:hover { r: 5; }
+.worldline-chart-current {
+  fill: var(--red-bright);
+  stroke: var(--paper);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 4px rgba(177, 68, 68, 0.6));
+}
+.stakes-panel[data-severity="critical"] .worldline-chart-current { fill: var(--red); }
+.worldline-chart-label {
+  font-family: "Courier New", monospace;
+  font-size: 9px;
+  fill: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+/* round 051: 降级信息行——风险/下一节点压缩为小字 */
+.stakes-meta-low {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  border-bottom: 1px dotted rgba(138, 109, 42, 0.1);
+  margin-bottom: 6px;
+}
+
+/* round 051: 漂移条预览态——玩家点击后 aftermath 未完成时的半透明脉冲 */
+.worldline-drift.drift-preview #driftCursor {
+  opacity: 0.55;
+  animation: driftPreviewPulse 1.2s ease-in-out infinite;
+}
+@keyframes driftPreviewPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.75; }
+}
+
+/* round 051: 整页氛围响应——累计偏移越高，背景越冷越紧 */
+body[data-drift-severity="mid"] {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(138, 109, 42, 0.12), transparent 60%),
+    linear-gradient(180deg, #1a1208 0%, #0d0805 100%);
+}
+body[data-drift-severity="high"] {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(177, 68, 68, 0.1), transparent 65%),
+    linear-gradient(180deg, #1a0a06 0%, #0a0403 100%);
+}
+body[data-drift-severity="critical"] {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(122, 42, 29, 0.18), transparent 70%),
+    linear-gradient(180deg, #1a0805 0%, #080302 100%);
+}
+body[data-drift-severity="critical"] .desk-header h1 {
+  text-shadow: 0 0 12px rgba(122, 42, 29, 0.4);
+}
+
+/* round 051: loading-stamp 兜底（emptyState 可能无 .loading-state 父级）*/
+.loading-stamp {
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  margin-bottom: 20px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* ─── 行动选项预估偏移（round 048 新增）─── */
+.action-estimated-drift {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 2px solid var(--muted);
+  background: rgba(0, 0, 0, 0.15);
+}
+.action-estimated-drift .drift-value {
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.action-estimated-drift .drift-reason {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+.action-estimated-drift.drift-low {
+  border-left-color: var(--green);
+}
+.action-estimated-drift.drift-low .drift-value { color: var(--green); }
+.action-estimated-drift.drift-mid {
+  border-left-color: var(--gold-bright);
+}
+.action-estimated-drift.drift-mid .drift-value { color: var(--gold-bright); }
+.action-estimated-drift.drift-high {
+  border-left-color: var(--red-bright);
+  background: rgba(177, 68, 68, 0.08);
+}
+.action-estimated-drift.drift-high .drift-value { color: var(--red-bright); }
+.action-estimated-drift.drift-critical {
+  border-left-color: var(--red);
+  border-left-width: 3px;
+  background: rgba(122, 42, 29, 0.12);
+}
+.action-estimated-drift.drift-critical .drift-value {
+  color: var(--red);
+  text-shadow: 0 0 6px rgba(122, 42, 29, 0.4);
+}
+
+/* ─── aftermath 新增组件（round 048）─── */
+.new-nodes-list, .new-edges-list {
+  list-style: none;
+  padding: 8px 0;
+}
+.new-nodes-list li, .new-edges-list li {
+  padding: 6px 12px;
+  margin: 4px 0;
+  border-left: 2px solid var(--gold);
+  background: rgba(138, 109, 42, 0.06);
+  font-size: 13px;
+  color: var(--paper);
+}
+.new-nodes-list li small, .new-edges-list li small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.new-edges-list li {
+  border-left-color: var(--gold-bright);
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+.aftermath-flags {
+  margin-top: 14px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(138, 109, 42, 0.15);
+  border-radius: 2px;
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+.aftermath-flags .stakes-value {
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  color: var(--gold-bright);
+  letter-spacing: 0.1em;
+}
+
+.aftermath-human-approval {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(122, 42, 29, 0.15);
+  border: 1px solid var(--red);
+  border-radius: 2px;
+  color: var(--red-bright);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  animation: criticalPulse 1.5s ease-in-out infinite;
+}
+
+/* ─── keyframes（round 048 增强）─── */
+@keyframes openingFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes typewriterReveal {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes typewriterIn {
+  from { opacity: 0; letter-spacing: 0.5em; }
+  to { opacity: 1; letter-spacing: 0.25em; }
+}
+
+@keyframes anomalyBlinkIn {
+  0% { opacity: 0; transform: scale(1.1); }
+  30% { opacity: 1; }
+  50% { opacity: 0.3; }
+  70% { opacity: 1; }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes redGlitch {
+  0%, 100% {
+    text-shadow: 0 0 0 var(--red-bright);
+    transform: translateX(0);
+  }
+  20% {
+    text-shadow: 2px 0 0 var(--red), -2px 0 0 var(--red-bright);
+    transform: translateX(-1px);
+  }
+  40% {
+    text-shadow: -2px 0 0 var(--red), 2px 0 0 var(--red-bright);
+    transform: translateX(1px);
+  }
+  60% {
+    text-shadow: 1px 0 0 var(--red-bright), -1px 0 0 var(--paper);
+    transform: translateX(0);
+  }
+}
+
+@keyframes telegramDwell {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes cursorBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes hookReveal {
+  0% { opacity: 0; transform: translateY(8px); letter-spacing: 0.15em; }
+  100% { opacity: 1; transform: translateY(0); letter-spacing: 0.04em; }
+}
+
+@keyframes miniDriftGrow {
+  from { opacity: 0; transform: scaleX(0.6); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes miniDriftFill {
+  from { width: 0; }
+  to { width: 10%; }
+}
+
+@keyframes scanlineDrift {
+  from { transform: translateY(0); }
+  to { transform: translateY(3px); }
+}
+
+@keyframes cursorPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.15); }
+}
+@keyframes cursorPulseFast {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.2); }
+}
+@keyframes cursorPulseCritical {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.3); }
+}
+
+@keyframes criticalPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes tearShift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-9px); }
+}
+
+@keyframes stakesAppear {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes stakesCriticalAppear {
+  0% { opacity: 0; transform: translateY(-8px); }
+  50% { opacity: 1; transform: translateY(0); }
+  60% { transform: translateX(-2px); }
+  70% { transform: translateX(2px); }
+  80% { transform: translateX(-1px); }
+  100% { transform: translateX(0); }
+}
+
+/* ─── 新组件响应式（720px 以下） ─── */
+@media (max-width: 720px) {
+  .stakes-row {
+    grid-template-columns: 90px 1fr;
+  }
+  .stakes-cumulative {
+    grid-column: 2;
+  }
+  .stakes-leveraged, .stakes-cause {
+    grid-template-columns: 90px 1fr;
+  }
+  .aftermath-flags {
+    grid-template-columns: 90px 1fr;
+  }
+  .worldline-drift {
+    padding: 12px 14px;
+  }
+  .opening-stage {
+    padding: 0 20px;
+  }
+  .opening-hook {
+    font-size: 17px;
+  }
+}

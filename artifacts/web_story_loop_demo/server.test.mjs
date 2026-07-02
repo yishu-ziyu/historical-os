@@ -228,6 +228,141 @@ test('async generation job falls back when the model provider times out', async 
   }
 });
 
+test('Anthropic fallback chain skips thinking-only responses and reaches text model', async () => {
+  const appPort = 8904;
+  const appBaseUrl = `http://127.0.0.1:${appPort}`;
+  const home = await mkdtemp(join(tmpdir(), 'historical-runtime-home-'));
+  const receivedModels = [];
+  const modelServer = createHttpServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const prompt = body.messages?.[0]?.content || '';
+    receivedModels.push(body.model);
+
+    response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
+    if (body.model === 'claude-sonnet-4-6' || body.model === 'claude-haiku-4-5-20251001') {
+      response.end(JSON.stringify({
+        content: [{ type: 'thinking', thinking: 'I can solve this but did not emit text.' }],
+      }));
+      return;
+    }
+
+    if (prompt.includes('态势分析系统')) {
+      response.end(JSON.stringify({
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            situationRoom: {
+              anchor: { id: 'anchor', label: '异常锚点', type: 'anomaly_origin', status: 'active' },
+              nodes: [{ id: 'node-planck', label: '普朗克渠道', type: 'person', status: 'monitored', statusLabel: '已监控', depth: 1 }],
+              edges: [],
+              riskIndicators: { overall: 2, max: 5, components: [{ label: '操作风险', value: 1 }] },
+              nextDeadline: { type: 'newspaper_publication', label: '柏林日报出刊', date: '1933-04-20' },
+            },
+            actionOptions: [{
+              id: 'action-planck',
+              label: '通过普朗克渠道递送离境建议',
+              icon: 'letter',
+              historicalPlausibility: 'high',
+              description: '以私人通信降低公开风险。',
+              riskCost: 1,
+              intelReturn: 'high',
+              unlocksNodes: ['node-planck'],
+              consequencePreview: '普朗克渠道将被点亮。',
+            }],
+            historyFlags: ['fictional_branch'],
+          }),
+        }],
+      }));
+      return;
+    }
+
+    response.end(JSON.stringify({
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          intelCard: {
+            classification: '绝密',
+            header: {
+              title: '柏林物理学会会员名录变动报告',
+              documentId: 'B-DPG-1933-0417',
+              date: '1933-04-17',
+              source: '柏林物理学会秘书处',
+              language: 'de-zh',
+            },
+            body: {
+              text: '会员名录中保留了爱因斯坦的通信地址，但一处手写注记显示该地址已经被外部人员反复核验。',
+              originalSnippet: 'Adresse erneut bestätigt',
+              translation: '地址再次确认',
+              handwrittenNotes: [{ location: '页边', text: 'Nicht streichen', translation: '不要划去', inkColor: 'blue' }],
+            },
+            contradictions: [{ id: 'c1', type: 'address', description: '公开名录仍保留地址，但注记显示地址正在被核验。', significance: 'high' }],
+            clues: [{ id: 'clue-address', text: '地址被再次确认', category: '通信', confidence: 'verified' }],
+            nextTimeNode: '1933-04-20',
+            provenance: { type: 'generated', confidence: 0.8 },
+            historyFlags: ['fictional_branch'],
+          },
+          historyFlags: ['fictional_branch'],
+        }),
+      }],
+    }));
+  });
+  const modelAddress = await listen(modelServer);
+  const server = spawn(process.execPath, ['server.mjs'], {
+    cwd: new URL('.', import.meta.url),
+    env: {
+      ...process.env,
+      HOME: home,
+      PORT: String(appPort),
+      ANTHROPIC_BASE_URL: `http://127.0.0.1:${modelAddress.port}`,
+      ANTHROPIC_AUTH_TOKEN: 'test-token',
+      ANTHROPIC_MODEL: 'claude-sonnet-4-6',
+      HISTORICAL_RUNTIME_MODEL_PROVIDER: '',
+      MODEL_PROVIDER: '',
+      MINIMAX_API_KEY: '',
+      MINIMAX_BASE_URL: '',
+      TOKEN_PLAN_API_KEY: '',
+      TOKEN_PLAN_BASE_URL: '',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  try {
+    await waitForServer(server, appBaseUrl);
+
+    const startResponse = await fetch(`${appBaseUrl}/api/turn/start`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        caseId: 'einstein-1933',
+        turn: 1,
+        caseTitle: '爱因斯坦未离开德国',
+        historicalAnchors: ['Einstein 1933 年 10 月未离开柏林'],
+        riskLevel: 1,
+      }),
+    });
+
+    assert.equal(startResponse.status, 200);
+    const started = await startResponse.json();
+    const snapshot = await waitForJob(started.statusUrl, 'succeeded', appBaseUrl);
+
+    assert.equal(snapshot.result.briefing.intelCard.header.title, '柏林物理学会会员名录变动报告');
+    assert.deepEqual(receivedModels, [
+      'claude-sonnet-4-6',
+      'claude-opus-4-8',
+      'claude-sonnet-4-6',
+      'claude-opus-4-8',
+    ]);
+    assert.ok(snapshot.events.some((event) => event.technicalMessage.includes('模型返回空内容')));
+  } finally {
+    server.kill('SIGTERM');
+    await close(modelServer);
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+
 test('MiniMax Token Plan config defaults to Anthropic-compatible messages', async () => {
   const appPort = 8898;
   const appBaseUrl = `http://127.0.0.1:${appPort}`;
