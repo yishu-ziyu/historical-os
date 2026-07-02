@@ -28,13 +28,14 @@
   <main class="desk">
 
     <section id="archiveCabinet" class="archive-cabinet">
+
       <button id="archiveToggle" type="button" class="archive-toggle" aria-expanded="false">
         <span class="archive-icon">📁</span>
         <span class="archive-label">档案柜</span>
         <span class="archive-count">11</span>
       </button>
 
-      <div id="archivePanel" class="archive-panel" hidden>
+      <div id="artifactPanel" class="archive-panel" hidden>
         <header class="archive-header">
           <span class="desk-stamp">ARCHIV CABINET</span>
           <h2>值班台档案索引</h2>
@@ -141,6 +142,18 @@
     <section id="briefingSection" class="card intel-card" hidden></section>
     <section id="situationSection" class="card situation-room" hidden></section>
     <section id="aftermathSection" class="card aftermath" hidden></section>
+
+    <section id="auditPanel" class="card audit-panel" hidden>
+      <h3>审计频道</h3>
+      <div id="auditContent">暂无审计事件</div>
+    </section>
+
+    <section id="progressPanel" class="card progress-panel" hidden>
+      <h3>生成进度</h3>
+      <div id="progressStatus">待命</div>
+      <div id="progressEvents"></div>
+      <div id="technicalEvents"></div>
+    </section>
 
     <section id="turnEmptyState" class="empty-state">
       <div class="empty-stamp">CLASSIFIED</div>

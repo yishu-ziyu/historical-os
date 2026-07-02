@@ -1197,7 +1197,7 @@ function closeArchive() {
 
 function initArchiveCabinet() {
   const toggle = document.getElementById('archiveToggle');
-  const panel = document.getElementById('archivePanel');
+  const panel = document.getElementById('artifactPanel');
   if (!toggle || !panel) return;
 
   toggle.onclick = () => {
