@@ -119,6 +119,8 @@ function showLoading(message, kind) {
     const stamp = make('div', null, 'loading-stamp');
     stamp.textContent = '值班台';
     dom.emptyState.appendChild(stamp);
+    const barEl = make('div', null, 'loading-bar');
+    dom.emptyState.appendChild(barEl);
     const msgEl = make('p', message, 'loading-msg');
     dom.emptyState.appendChild(msgEl);
     // round 051: aftermath 推演分段轮播值班台文案，让等待有节奏感而非机械 PROCESSING
@@ -448,12 +450,15 @@ function renderWorldlineDrift(driftSigma) {
 
   const cursor = document.getElementById('driftCursor');
   const current = document.getElementById('driftCurrent');
+  const track = container.querySelector('.drift-track');
   if (!cursor || !current) return;
 
   const sigma = Math.max(0, Math.min(5, Number(driftSigma) || 0));
   const percent = (sigma / 5) * 100;
 
   cursor.style.left = `${percent}%`;
+
+  if (track) track.style.setProperty('--drift-fill-width', `${percent}%`);
 
   let color;
   if (sigma < 1) color = 'var(--green)';

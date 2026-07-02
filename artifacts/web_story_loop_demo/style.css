@@ -122,7 +122,7 @@ html, body {
   align-items: center;
   gap: 0;
   margin-bottom: 40px;
-  opacity: 0.5;
+  opacity: 0.7;
 }
 .stage-step {
   display: flex;
@@ -130,6 +130,7 @@ html, body {
   gap: 10px;
   padding: 8px 16px;
   transition: opacity 200ms;
+  position: relative;
 }
 .step-num {
   font-family: "Courier New", monospace;
@@ -151,8 +152,22 @@ html, body {
 .stage-step.active { opacity: 1; }
 .stage-step.active .step-num { color: var(--gold); }
 .stage-step.active .step-name { color: var(--paper); }
+.stage-step.active::after {
+  content: '▸';
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gold);
+  font-size: 10px;
+  animation: cursorBlink 1.4s steps(2) infinite;
+}
 .stage-step.done .step-num { color: var(--green); }
 .stage-step.done .step-name { color: var(--paper-2); }
+.stage-step.done .step-num::after {
+  content: ' ✓';
+  color: var(--green);
+}
 
 /* ─── 通用卡片（羊皮纸） ─── */
 .card {
@@ -490,21 +505,32 @@ html, body {
   position: relative;
 }
 .action-option::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: var(--gold);
+  transition: width 200ms;
+}
+.action-option::after {
   content: '▸';
   position: absolute;
   left: 22px;
-  top: 18px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--gold);
   opacity: 0;
-  transform: translateX(-8px);
-  transition: all 200ms;
+  transition: opacity 200ms;
+  font-size: 14px;
 }
 .action-option:hover:not(:disabled) {
   border-color: var(--gold);
   background: rgba(138, 109, 42, 0.08);
-  padding-left: 40px;
 }
-.action-option:hover:not(:disabled)::before { opacity: 1; transform: translateX(0); }
+.action-option:hover:not(:disabled)::before { width: 3px; }
+.action-option:hover:not(:disabled)::after { opacity: 1; }
 .action-option:disabled { opacity: 0.4; cursor: not-allowed; }
 .action-option.chosen {
   border-color: var(--gold);
@@ -583,17 +609,28 @@ html, body {
 }
 
 .aftermath-narrative {
-  padding: 20px 24px;
+  padding: 24px 28px;
   border-left: 3px solid var(--gold);
-  background: rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, rgba(138, 109, 42, 0.08), rgba(0, 0, 0, 0.2));
   margin-bottom: 28px;
 }
 .aftermath-narrative p {
-  font-size: 16px;
+  font-size: 17px;
   line-height: 2;
   color: var(--paper);
   text-indent: 2em;
   letter-spacing: 0.02em;
+  margin-bottom: 2em;
+}
+.aftermath-narrative p:last-child { margin-bottom: 0; }
+.aftermath-narrative p::first-letter {
+  font-size: 2.2em;
+  font-weight: 700;
+  color: var(--gold-bright);
+  float: left;
+  line-height: 1;
+  margin-right: 6px;
+  margin-top: 4px;
 }
 
 .shifts-list { list-style: none; margin-bottom: 24px; }
@@ -758,6 +795,30 @@ html, body {
 @keyframes pulse {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
+}
+.loading-bar {
+  width: 200px;
+  height: 2px;
+  background: rgba(138, 109, 42, 0.15);
+  border-radius: 1px;
+  margin: 16px auto;
+  overflow: hidden;
+  position: relative;
+}
+.loading-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 15%;
+  background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+  border-radius: 1px;
+  animation: loadingBar 3s ease-in-out infinite;
+}
+@keyframes loadingBar {
+  0% { transform: translateX(-600%); }
+  50% { transform: translateX(400%); }
+  100% { transform: translateX(-600%); }
 }
 
 /* ─── 底部 ─── */
@@ -1298,6 +1359,23 @@ html, body {
   box-shadow: 0 0 8px rgba(138, 109, 42, 0.2);
 }
 
+/* 漂移填充层：从起点到 cursor 位置的渐变填充 */
+.drift-track::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: var(--drift-fill-width, 0%);
+  background: linear-gradient(90deg,
+    rgba(61, 90, 58, 0.5) 0%,
+    rgba(201, 165, 90, 0.5) 50%,
+    rgba(177, 68, 68, 0.5) 100%);
+  border-radius: 2px;
+  transition: width 800ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+}
+
 /* 危险区域刻度标记（3σ-5σ 区间加底色）*/
 .drift-track::after {
   content: '';
@@ -1330,20 +1408,25 @@ html, body {
   transition: left 800ms cubic-bezier(0.2, 0.8, 0.2, 1), background 400ms, box-shadow 400ms;
   z-index: 2;
   animation: cursorPulse 2s ease-in-out infinite;
+  color: var(--green);
 }
 .worldline-drift[data-severity="mid"] .drift-cursor {
   background: var(--gold-bright);
   box-shadow: 0 0 14px var(--gold-bright), 0 0 28px rgba(201, 165, 90, 0.5);
+  color: var(--gold-bright);
+  animation: driftPulse 1.8s ease-in-out infinite;
 }
 .worldline-drift[data-severity="high"] .drift-cursor {
   background: var(--red-bright);
   box-shadow: 0 0 16px var(--red-bright), 0 0 32px rgba(177, 68, 68, 0.5);
-  animation: cursorPulseFast 1s ease-in-out infinite;
+  color: var(--red-bright);
+  animation: driftPulse 1.2s ease-in-out infinite;
 }
 .worldline-drift[data-severity="critical"] .drift-cursor {
   background: var(--red);
   box-shadow: 0 0 20px var(--red), 0 0 40px rgba(122, 42, 29, 0.7);
-  animation: cursorPulseCritical 0.6s ease-in-out infinite;
+  color: var(--red);
+  animation: driftPulse 0.7s ease-in-out infinite;
 }
 
 .drift-scale {
@@ -1933,6 +2016,10 @@ body[data-drift-severity="critical"] .desk-header h1 {
 @keyframes cursorPulse {
   0%, 100% { transform: translate(-50%, -50%) scale(1); }
   50% { transform: translate(-50%, -50%) scale(1.15); }
+}
+@keyframes driftPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 12px currentColor; }
+  50% { transform: translate(-50%, -50%) scale(1.25); box-shadow: 0 0 22px currentColor, 0 0 40px currentColor; }
 }
 @keyframes cursorPulseFast {
   0%, 100% { transform: translate(-50%, -50%) scale(1); }
