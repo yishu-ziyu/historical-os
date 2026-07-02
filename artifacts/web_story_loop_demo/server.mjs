@@ -528,9 +528,13 @@ ${ws.nextDeadline ? `下一个截止线：${ws.nextDeadline.label}（${ws.nextDe
 3. 给出后果预览——不是详细叙事，而是状态标签。
 4. 如果上一回合的选择产生了连锁效应，某些选项应该被移除或标记为"不可用"。
 5. 如果有截止线，至少一个选项应该标注"时间敏感"。
-6. 【关键】每个选项必须预估 worldLineShift（如果玩家选了这个，世界线会偏移多少）：
-   - estimatedDrift.totalDelta = 选项执行后的预估累计偏移（基于当前 ${ws.worldLineShift ? ws.worldLineShift.totalDelta : 0}σ 起算）
-   - estimatedDrift.turnDelta = 本选项预估新增偏移（-0.3 到 +2.0）
+6. 【关键】每个选项必须预估 worldLineShift（如果玩家选了这个，世界线会偏移多少）。预估偏移的评估标准必须和后续推演实际偏移使用同一套标准：
+   - 观察/等待/不干预 → -0.2~+0.3σ（新增偏移接近零，可能略微回正）
+   - 有针对性间接干预（传递情报、私人通信、渠道搭建）→ +0.3~+0.9σ
+   - 高风险直接行动（保护、转移、公开对抗）→ +1.0~+1.8σ
+   - 改变历史走向（阻止关键事件、大规模组织）→ +1.9~+3.0σ
+   - estimatedDrift.turnDelta = 本选项预估新增偏移（-0.5 到 +2.5，允许负值表示回正）
+   - estimatedDrift.totalDelta = 选项执行后的预估累计偏移 = 当前 ${ws.worldLineShift ? ws.worldLineShift.totalDelta : 0}σ + estimatedDrift.turnDelta
    - estimatedDrift.domains = 受影响领域（如 physics/jewish_safety/diplomacy）
    - estimatedDrift.reason = 一句话说明为什么这个选择会导致这个偏移（给玩家看的因果解释）
 7. 至少一个选项应保守（低偏移），至少一个应激进（高偏移）——让玩家在风险和回报间权衡。
@@ -606,17 +610,17 @@ ${historyDesc}
 ${markedDesc}
 
 推演要求：
-1. narrative 控制在 120-180 字。前 100-150 字为值班台内部报告风格（客观、克制、严肃处理纳粹/反犹语境）；最后一句必须是具体的人味细节——一个画面、一个声音、一个私人的瞬间（如"窗外传来一首安息日歌谣，无人唱和"），不带分析、不带机制术语、不出现"世界线""σ""偏移"等词。让玩家从一个具体画面感到这回合的代价。
-2. 每个 stateChange 必须有证据（evidence），且和玩家选择有直接因果——不能凭空发生与选择无关的变更。
-3. worldLineShift.totalDelta 必须反映玩家选择对历史进程的真实偏移强度：
-   - 选择保守/观察 → 0.0-0.3σ
-   - 选择有针对性干预（如转移、保护、传递情报）→ 0.4-0.8σ
-   - 选择高风险行动（如直接对抗、暴露身份）→ 0.9-1.5σ
-   - 选择改变历史走向（如阻止关键事件）→ 1.6-3.0σ
+1. narrative 控制在 120-180 字。前 100-150 字为值班台内部报告风格（客观、克制、严肃处理纳粹/反犹语境）；最后一句必须是具体的人味细节--一个画面、一个声音、一个私人的瞬间（如"窗外传来一首安息日歌谣，无人唱和"），不带分析、不带机制术语、不出现"世界线""σ""偏移"等词。让玩家从一个具体画面感到这回合的代价。
+2. 每个 stateChange 必须有证据（evidence），且和玩家选择有直接因果--不能凭空发生与选择无关的变更。
+3. 偏移评估标准（与态势室预估完全一致，玩家看到预估与实际后应能理解差异原因）：
+   - 观察/等待/不干预 → -0.2~+0.3σ（新增偏移接近零，可能略微回正）
+   - 有针对性间接干预（传递情报、私人通信、渠道搭建）→ +0.3~+0.9σ
+   - 高风险直接行动（保护、转移、公开对抗）→ +1.0~+1.8σ
+   - 改变历史走向（阻止关键事件、大规模组织）→ +1.9~+3.0σ
 4. worldLineShift.turnDelta 是本回合新增的偏移（-0.5 到 +2.5），可能为负（玩家选择反而拉回真实历史）。
 5. worldLineShift.domains 列出受影响的历史领域，如 physics/jewish_safety/nazi_ideology/diplomacy/academia。
-6. worldLineShift.cause 用一句话说明为什么这个选择导致了这个偏移——这是给玩家看的因果解释。
-7. 累积感知规则：参考玩家已走过的选择路径——如果玩家连续多回合选择同方向激进（如第 2、3 次都是高风险），turnDelta 应取该档位上限，且 narrative 必须体现"局势因持续干预而加速恶化"的累积感；如果玩家中途转向保守，turnDelta 应明显回落。让玩家感到他的每一步都在累积塑造世界线，不是孤立选择。
+6. worldLineShift.cause 用一句话说明为什么这个选择导致了这个偏移--这是给玩家看的因果解释。
+7. 累积感知规则：参考玩家已走过的选择路径--如果玩家连续多回合选择同方向激进（如第 2、3 次都是高风险），turnDelta 应取该档位上限，且 narrative 必须体现"局势因持续干预而加速恶化"的累积感；如果玩家中途转向保守，turnDelta 应明显回落。让玩家感到他的每一步都在累积塑造世界线，不是孤立选择。
 
 【JSON 格式 - 极重要】所有字符串值必须用双引号 "..." 包围。中文书名号《》不是引号。错误示例：cause: 直接干预。正确示例：cause: "直接干预"。
 
@@ -748,7 +752,7 @@ async function retryWithBackoff(fn, maxRetries = MAX_RETRIES, baseDelayMs = RETR
       lastError = error instanceof Error ? error : new Error(String(error));
       // 只对可恢复错误重试（超时 / 并发错误 / 网络抖动）
       // 不可恢复错误（认证失败 / 模型不支持）直接放弃
-      const isRecoverable = /超时|concurrency|rate.limit|529|502|503|504|ECONNRESET|ETIMEDOUT/.test(lastError.message);
+      const isRecoverable = /超时|concurrency|rate.limit|529|502|503|504|ECONNRESET|ETIMEDOUT|fetch.failed|ENOTFOUND|EAI_AGAIN/.test(lastError.message);
       if (!isRecoverable || attempt >= maxRetries) break;
       const delay = baseDelayMs * (attempt + 1);
       if (process.env.TURN_CYCLE_DEBUG) {
