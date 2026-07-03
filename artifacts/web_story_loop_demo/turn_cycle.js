@@ -181,6 +181,37 @@ function renderBriefing(briefing) {
   header.append(headerLeft, headerRight);
   dom.briefingSection.appendChild(header);
 
+  // hero image: frontend-local keyword match against title + body text
+  const cardTitle = (card.header?.title || '').toLowerCase();
+  const cardBody = (card.body?.text || '').toLowerCase();
+  const titleBody = cardTitle + ' ' + cardBody;
+  const portraitMap = [
+    { keywords: ['爱因斯坦'], src: './assets/portraits/einstein-head.jpg', alt: '爱因斯坦 1921 年肖像' },
+    { keywords: ['普朗克'],   src: './assets/portraits/planck-bundesarchiv.jpg', alt: '普朗克 Bundesarchiv 肖像' },
+    { keywords: ['索尔维'],   src: './assets/portraits/solvay-1911.jpg', alt: '1911 年索尔维会议合影' },
+  ];
+  const sealMap = [
+    { keywords: ['科学院'],  src: './assets/seals/akademie.svg', alt: '普鲁士科学院印章' },
+    { keywords: ['物理学会'], src: './assets/seals/dpg.svg', alt: '柏林物理学会印章' },
+    { keywords: ['帝国物理'], src: './assets/seals/ptr.svg', alt: '帝国物理技术局印章' },
+  ];
+  const matched = portraitMap.find((m) => m.keywords.some((k) => titleBody.includes(k)))
+    || sealMap.find((m) => m.keywords.some((k) => titleBody.includes(k)));
+  if (matched) {
+    const hero = make('div', null, 'intel-hero-image-wrap');
+    const img = make('img');
+    img.src = matched.src;
+    img.alt = matched.alt;
+    img.className = 'intel-hero-image';
+    img.loading = 'eager';
+    hero.appendChild(img);
+    const caption = make('div', null, 'intel-hero-caption');
+    caption.appendChild(make('span', matched.alt));
+    caption.appendChild(make('span', '已核验', 'intel-classified-tag'));
+    hero.appendChild(caption);
+    dom.briefingSection.appendChild(hero);
+  }
+
   const body = make('div', null, 'intel-body');
   if (card.body?.text) {
     body.appendChild(make('p', card.body.text, 'intel-text'));

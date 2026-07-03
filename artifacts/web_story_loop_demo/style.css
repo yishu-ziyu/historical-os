@@ -242,6 +242,39 @@ html, body {
   white-space: nowrap;
 }
 
+/* ─── 情报卡 hero 图片（伪纪录片泛黄效果）─── */
+.intel-hero-image-wrap {
+  position: relative;
+  margin-bottom: 24px;
+}
+.intel-hero-image {
+  display: block;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  filter: sepia(0.25) brightness(0.75) contrast(1.1);
+  border-bottom: 1px solid rgba(138, 109, 42, 0.3);
+}
+.intel-hero-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  background: rgba(0, 0, 0, 0.25);
+}
+.intel-classified-tag {
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--red-bright);
+  border: 1px solid rgba(177, 68, 68, 0.4);
+  padding: 2px 8px;
+}
+
 .intel-body { margin-bottom: 24px; }
 .intel-text {
   font-size: 17px;
