@@ -116,14 +116,25 @@ function showLoading(message, kind) {
   if (dom.emptyState) {
     dom.emptyState.hidden = false;
     clearEl(dom.emptyState);
+    const stageMap = {
+      briefing: '情报值班台',
+      situation: '态势分析台',
+      aftermath: '推演档案室',
+    };
+    const stageName = stageMap[kind] || '值班台';
     const stamp = make('div', null, 'loading-stamp');
-    stamp.textContent = '值班台';
+    stamp.textContent = stageName;
     dom.emptyState.appendChild(stamp);
+    // dots 省略号
+    const dotsWrap = make('span', null, 'loading-dots');
+    for (let d = 0; d < 3; d++) {
+      dotsWrap.appendChild(make('span'));
+    }
+    stamp.appendChild(dotsWrap);
     const barEl = make('div', null, 'loading-bar');
     dom.emptyState.appendChild(barEl);
     const msgEl = make('p', message, 'loading-msg');
     dom.emptyState.appendChild(msgEl);
-    // round 051: aftermath 推演分段轮播值班台文案，让等待有节奏感而非机械 PROCESSING
     if (kind === 'aftermath') {
       const phases = [
         '档案室灯亮着 · 卷宗调取中',
@@ -192,9 +203,13 @@ function renderBriefing(briefing) {
   if (Array.isArray(card.contradictions) && card.contradictions.length > 0) {
     const section = make('div', null, 'intel-section');
     section.appendChild(make('div', '矛盾信号', 'intel-section-title'));
+    const sigLabels = { high: '高', medium: '中', low: '低' };
     card.contradictions.forEach((c) => {
       const item = make('div', null, `intel-contradiction significance-${c.significance || 'low'}`);
-      item.textContent = c.description || c.type || '矛盾点';
+      const sigLabel = make('span', sigLabels[c.significance] || '低', 'intel-contradiction-significance significance-' + (c.significance || 'low'));
+      const desc = make('span', c.description || c.type || '矛盾点', 'intel-contradiction-desc');
+      item.appendChild(sigLabel);
+      item.appendChild(desc);
       section.appendChild(item);
     });
     dom.briefingSection.appendChild(section);
@@ -346,14 +361,16 @@ function renderSituationRoom(sr) {
   if (options.length > 0) {
     dom.situationSection.appendChild(make('div', '可执行行动', 'intel-section-title'));
     const list = make('div', null, 'action-options');
-    options.forEach((option) => {
+    const optionLetters = ['A', 'B', 'C', 'D', 'E'];
+    options.forEach((option, idx) => {
       const btn = make('button', null, 'action-option');
       btn.type = 'button';
       btn.disabled = turnState.stage !== 'awaiting_choice';
       btn.dataset.actionId = option.id;
 
       const header = make('div', null, 'action-header');
-      header.appendChild(make('strong', option.label));
+      const optionLabel = optionLetters[idx] !== undefined ? `${optionLetters[idx]}. ` : '';
+      header.appendChild(make('strong', `${optionLabel}${option.label}`));
       header.appendChild(make('span',
         `历史合理性 · ${option.historicalPlausibility || 'medium'}`,
         `action-plausibility plausibility-${option.historicalPlausibility || 'medium'}`));
@@ -362,8 +379,19 @@ function renderSituationRoom(sr) {
       if (option.description) btn.appendChild(make('p', option.description, 'action-description'));
 
       const metrics = make('div', null, 'action-metrics');
-      metrics.appendChild(make('span', `风险成本 ${option.riskCost ?? 0}`));
-      metrics.appendChild(make('span', `情报回报 ${option.intelReturn || 'low'}`));
+      // 风险成本可视化条形图
+      const riskVal = option.riskCost ?? 0;
+      const riskClass = riskVal <= 1 ? 'risk-low' : riskVal <= 3 ? 'risk-medium' : 'risk-high';
+      const riskWrap = make('span', null, 'action-risk-bar-wrap');
+      const barInner = make('span', null, 'action-risk-bar');
+      const fill = make('span', null, `action-risk-fill ${riskClass}`);
+      barInner.appendChild(fill);
+      const riskLabel = make('span', riskVal <= 1 ? '低' : riskVal <= 3 ? '中' : '高', 'action-risk-label');
+      riskWrap.appendChild(barInner);
+      riskWrap.appendChild(riskLabel);
+      metrics.appendChild(riskWrap);
+      // 情报回报
+      metrics.appendChild(make('span', `回报 ${option.intelReturn || '低'}`));
       btn.appendChild(metrics);
 
       if (option.consequencePreview) {
