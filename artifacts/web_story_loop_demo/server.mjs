@@ -427,7 +427,11 @@ const finalityTerms = ['最终结局', '彻底终结', '一切结束', '历史�
 
 // ─── 三段式回合 Prompt ───────────────────────────────────────────
 
-function buildBriefingPrompt({ caseId, turn, caseTitle, historicalAnchors, previousState, playerHistory }) {
+function buildBriefingPrompt({ caseId, turn, caseTitle, historicalAnchors, previousState, playerHistory, markedClues }) {
+  const markedCluesDesc = markedClues && Object.keys(markedClues).length > 0
+    ? Object.entries(markedClues).slice(0, 5).map(([cid, note]) => `  - ${cid}: ${note || '(无笔记)'}`).join('\n')
+    : '  (无)';
+
   return `你是情报值班台的档案编辑。请基于以下历史框架，生成一张「情报卡」——一份会落到玩家 Intel Desk 的真实感档案。
 
 核心世界线：1933 年，爱因斯坦没有离开德国。
@@ -439,6 +443,9 @@ function buildBriefingPrompt({ caseId, turn, caseTitle, historicalAnchors, previ
 ${previousState ? `当前世界线状态：\n${JSON.stringify(previousState, null, 2)}` : '这是第一回合，无先前状态。'}
 
 ${playerHistory && playerHistory.length > 0 ? `玩家已走过的路径：${playerHistory.join(' → ')}` : ''}
+
+玩家之前标记的线索（如果有，请在 contradictions 或 clues 中显式回指至少一条，让玩家感受到"这个档案和我之前关心的事有关"）：
+${markedCluesDesc}
 
 档案体写作要求：
 1. 以真实档案格式呈现：有编号、日期、来源机构、密级。
@@ -537,7 +544,8 @@ ${ws.nextDeadline ? `下一个截止线：${ws.nextDeadline.label}（${ws.nextDe
    - estimatedDrift.totalDelta = 选项执行后的预估累计偏移 = 当前 ${ws.worldLineShift ? ws.worldLineShift.totalDelta : 0}σ + estimatedDrift.turnDelta
    - estimatedDrift.domains = 受影响领域（如 physics/jewish_safety/diplomacy）
    - estimatedDrift.reason = 一句话说明为什么这个选择会导致这个偏移（给玩家看的因果解释）
-7. 至少一个选项应保守（低偏移），至少一个应激进（高偏移）——让玩家在风险和回报间权衡。
+8. 【档位分化硬性规则】：如果你给两个选项标了不同档位，它们的 turnDelta 必须相差至少 0.3σ。例如一个选项在 +0.4σ 档位，另一个必须在 +0.7σ 及以上才算真正激进。如果两个选项 turnDelta 的差距小于 0.3σ，它们算同一档位，你需要重新评估哪个更保守、哪个更激进。宁可档位差距大也不要模棱两可。
+9. 至少一个选项应保守（低偏移），至少一个应激进（高偏移）--让玩家在风险和回报间权衡。
 
 【JSON 格式 - 极重要】所有字符串值必须用双引号 "..." 包围。中文书名号《》不是引号。错误示例：label: 选项名。正确示例：label: "选项名"。
 
@@ -625,6 +633,7 @@ ${markedDesc}
 5. worldLineShift.domains 列出受影响的历史领域，如 physics/jewish_safety/nazi_ideology/diplomacy/academia。
 6. worldLineShift.cause 用一句话说明为什么这个选择导致了这个偏移--这是给玩家看的因果解释。
 7. 累积感知规则：参考玩家已走过的选择路径--如果玩家连续多回合选择同方向激进（如第 2、3 次都是高风险），turnDelta 应取该档位上限，且 narrative 必须体现"局势因持续干预而加速恶化"的累积感；如果玩家中途转向保守，turnDelta 应明显回落。让玩家感到他的每一步都在累积塑造世界线，不是孤立选择。
+8. 【推演与预估一致性硬性规则】：worldLineShift.turnDelta 是本回合新增的偏移。如果上一回合态势室给出了 estimatedDrift，本回合推演出的 turnDelta 应该和预估在同一档位（±0.3σ 容差）。如果差距超过 0.3σ，说明预估与推演不一致，你需要在 narrative 或 cause 中解释原因（如"情报有误""局势因外部事件恶化"）。推演不是随便给一个数字，它是预估的兑现或修正。
 
 【JSON 格式 - 极重要】所有字符串值必须用双引号 "..." 包围。中文书名号《》不是引号。错误示例：cause: 直接干预。正确示例：cause: "直接干预"。
 
@@ -1773,7 +1782,7 @@ async function runTurn(payload, progressJob) {
 
     // Stage 1: Briefing
     const briefingResult = await runTurnStage(
-      buildBriefingPrompt({ caseId, turn, caseTitle, historicalAnchors, previousState: compiledWorldState, playerHistory }),
+      buildBriefingPrompt({ caseId, turn, caseTitle, historicalAnchors, previousState: compiledWorldState, playerHistory, markedClues: compiledWorldState.markedClues }),
       parseBriefingResult,
       'briefing',
       '情报值班台',
