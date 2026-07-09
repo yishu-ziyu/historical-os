@@ -23,6 +23,18 @@ const stateChangeTargetLabels = {
   'risk.overall': '整体风险',
 };
 
+const DOMAIN_LABELS = {
+  physics: '物理学',
+  jewish_safety: '犹太人安全',
+  nazi_ideology: '纳粹意识形态',
+  diplomacy: '外交',
+  academia: '学术界',
+  politics: '政治',
+  military: '军事',
+  science: '科学',
+  economy: '经济',
+};
+
 let turnState = {
   turn: 0,
   stage: 'idle',
@@ -542,9 +554,8 @@ function renderWorldlineDrift(driftSigma) {
 function verdictForWorldline(cumulative, domains) {
   const s = Math.abs(Number(cumulative) || 0);
   const topDomains = (domains || []).slice(0, 2);
-  const domainMap = { physics: '物理学', jewish_safety: '犹太人安全', nazi_ideology: '纳粹意识形态', diplomacy: '外交', academia: '学术界', politics: '政治', military: '军事', science: '科学', economy: '经济' };
   const domainLabel = topDomains.length > 0
-    ? topDomains.map(d => domainMap[d] || d).join('与')
+    ? topDomains.map(d => DOMAIN_LABELS[d] || d).join('与')
     : '';
   if (s < 0.35) return '世界线尚在惯性中，历史还未真正改变';
   if (s < 0.85) return domainLabel ? `你的选择开始在${domainLabel}留下擦痕` : '你的选择开始留下擦痕';
@@ -725,8 +736,7 @@ function renderStakesPanel(aftermath, caseState) {
     const domainsRow = make('div', null, 'stakes-row stakes-domains');
     domainsRow.appendChild(make('span', '受影响领域', 'stakes-label'));
     const domainsText = domains.map((d) => {
-      const map = { physics: '物理学', jewish_safety: '犹太人安全', nazi_ideology: '纳粹意识形态', diplomacy: '外交', academia: '学术界', politics: '政治', military: '军事', science: '科学', economy: '经济' };
-      return map[d] || d;
+      return DOMAIN_LABELS[d] || d;
     }).join('、');
     domainsRow.appendChild(make('span', domainsText, 'stakes-value'));
     panel.appendChild(domainsRow);
@@ -793,7 +803,7 @@ function renderAftermath(aftermath) {
         const change = make('span', null, 'shift-change');
         const fromStr = typeof sc.from === 'object' ? JSON.stringify(sc.from) : String(sc.from ?? '');
         const toStr = typeof sc.to === 'object' ? JSON.stringify(sc.to) : String(sc.to ?? '');
-        change.innerHTML = '';
+        change.textContent = '';
         change.appendChild(document.createTextNode(`${sc.field}: `));
         const fromEl = make('em', fromStr);
         change.appendChild(fromEl);

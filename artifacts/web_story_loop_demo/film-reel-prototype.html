@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>历史异常值班台 · 胶片叙事引擎</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Noto+Serif+SC:wght@400;600;700&display=swap');
+
+  :root {
+    --film-dark: #0c0a07;
+    --film-border: #1a1510;
+    --frame-bg: #f5f0e2;
+    --ink: #1a1612;
+    --ink-light: #3a3025;
+    --muted: #7a6e55;
+    --gold: #8a6d2a;
+    --gold-dim: rgba(138, 109, 42, 0.35);
+    --red: #8a1a10;
+    --red-bright: #c43020;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: var(--film-dark);
+    color: var(--ink);
+    font-family: "Noto Serif SC", "Songti SC", Georgia, serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ═══ 全局覆盖层 ═══ */
+  .overlay { position: fixed; inset: 0; pointer-events: none; z-index: 1000; }
+
+  .vignette {
+    background: radial-gradient(ellipse at center,
+      transparent 50%,
+      rgba(0,0,0,0.2) 70%,
+      rgba(0,0,0,0.5) 100%
+    );
+    z-index: 1001;
+  }
+
+  .scratches {
+    opacity: 0.035;
+    background: repeating-linear-gradient(93deg,
+      transparent 0, transparent 3px,
+      rgba(180,170,140,0.5) 3px, rgba(180,170,140,0.5) 4px
+    );
+    z-index: 1002;
+  }
+
+  #grainCanvas {
+    opacity: 0.055;
+    mix-blend-mode: screen;
+    z-index: 1003;
+  }
+
+  /* ═══ 闪烁全屏白闪（过渡期间） ═══ */
+  .flash-overlay {
+    position: fixed;
+    inset: 0;
+    background: #f5f0e2;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 2000;
+  }
+
+  /* ═══ RGB 偏移层（过渡期间激活） ═══ */
+  .rgb-shift {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0;
+    mix-blend-mode: screen;
+  }
+
+  /* ═══ 放映机容器 ═══ */
+  .projector {
+    position: relative;
+    z-index: 1;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 50px 0 80px;
+  }
+
+  .projector-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .stamp {
+    display: inline-block;
+    font-family: "Special Elite", "Courier New", monospace;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    color: var(--red-bright);
+    border: 1.5px solid var(--red);
+    padding: 5px 16px;
+    transform: rotate(-2deg);
+    margin-bottom: 16px;
+  }
+
+  .projector-header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #c5b888;
+    line-height: 1.2;
+  }
+
+  .projector-header .sub {
+    margin-top: 8px;
+    font-family: "Special Elite", monospace;
+    font-size: 11px;
+    color: #5a4a30;
+    letter-spacing: 0.2em;
+  }
+
+  /* ═══ 胶片条 ═══ */
+  .film-strip {
+    position: relative;
+    background: #0f0c08;
+    padding: 12px 0;
+    margin: 0 36px;
+    box-shadow: 0 0 80px rgba(0,0,0,0.9), 0 0 160px rgba(0,0,0,0.5);
+  }
+
+  .film-strip::before,
+  .film-strip::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 22px;
+    background: repeating-linear-gradient(to bottom,
+      #050505 0, #050505 9px,
+      transparent 9px, transparent 20px
+    );
+    background-size: 22px 20px;
+    background-position: center;
+    background-repeat: repeat-y;
+  }
+  .film-strip::before { left: 0; }
+  .film-strip::after { right: 0; }
+
+  .film-frames {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding: 0 12px;
+  }
+  .film-frames::-webkit-scrollbar { display: none; }
+
+  /* ═══ 单个帧 ═══ */
+  .film-frame {
+    flex: 0 0 100%;
+    min-width: 100%;
+    scroll-snap-align: center;
+    position: relative;
+    background: var(--frame-bg);
+    opacity: 0;
+    display: none;
+    will-change: transform, opacity, filter;
+  }
+
+  .film-frame.active {
+    display: block;
+    opacity: 1;
+  }
+
+  .frame-number {
+    position: absolute;
+    top: 10px; right: 14px;
+    font-family: "Special Elite", monospace;
+    font-size: 10px;
+    color: rgba(26, 22, 18, 0.18);
+    letter-spacing: 0.15em;
+    z-index: 5;
+  }
+
+  .frame-content {
+    padding: 32px 36px 28px;
+    position: relative;
+    min-height: 400px;
+  }
+
+  /* ═══ 帧内元素 ═══ */
+  .classification {
+    display: inline-block;
+    font-family: "Special Elite", monospace;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    color: var(--red-bright);
+    border: 1.5px solid var(--red);
+    padding: 4px 14px;
+    margin-bottom: 16px;
+  }
+
+  .frame-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.4;
+    margin-bottom: 8px;
+    letter-spacing: 0.03em;
+  }
+
+  .frame-meta {
+    font-family: "Special Elite", monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed rgba(90, 74, 48, 0.22);
+  }
+
+  .narrative {
+    font-size: 15px;
+    line-height: 2;
+    color: var(--ink);
+    margin-bottom: 18px;
+    text-align: justify;
+  }
+
+  .narrative-alt {
+    margin-top: 14px;
+    font-style: italic;
+    color: #5a4a30;
+    font-size: 14px;
+    line-height: 1.9;
+    padding-left: 16px;
+    border-left: 2px solid var(--gold-dim);
+  }
+
+  .sepia-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold-dim), transparent);
+    margin: 18px 0;
+  }
+
+  .choices-label {
+    font-family: "Special Elite", monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .choice-item {
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    background: rgba(138, 109, 42, 0.05);
+    border: 1px solid rgba(138, 109, 42, 0.13);
+    border-left: 3px solid var(--gold);
+    cursor: pointer;
+    transition: all 120ms ease;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+
+  .choice-item:hover {
+    background: rgba(138, 109, 42, 0.12);
+    border-left-color: var(--red-bright);
+    transform: translateX(4px);
+  }
+
+  .choice-tag {
+    display: inline-block;
+    font-family: "Special Elite", monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-top: 5px;
+    padding: 2px 8px;
+    background: rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  .choice-preview {
+    font-size: 12px;
+    color: var(--red-bright);
+    margin-top: 4px;
+    font-style: italic;
+    font-family: "Special Elite", monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .verdict-banner {
+    text-align: center;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    background: rgba(138, 26, 16, 0.05);
+    border: 1px solid rgba(138, 26, 16, 0.12);
+  }
+
+  .verdict-banner .label {
+    font-family: "Special Elite", monospace;
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    color: var(--red-bright);
+  }
+
+  .verdict-banner .text {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-top: 4px;
+    letter-spacing: 0.06em;
+  }
+
+  .state-changes {
+    list-style: none;
+    padding: 0;
+  }
+
+  .state-changes li {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-light);
+    padding: 5px 0;
+    border-bottom: 1px dotted rgba(90,74,48,0.1);
+    display: flex;
+    gap: 10px;
+  }
+
+  .state-changes li::before {
+    content: '\25C6';
+    color: var(--gold);
+    font-size: 8px;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+
+  /* ═══ sigma 仪表 ═══ */
+  .sigma-meter {
+    margin: 20px 36px 0;
+    padding: 12px 16px;
+    background: #0f0c08;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+  }
+
+  .sigma-meter::before, .sigma-meter::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 14px;
+    background: repeating-linear-gradient(to bottom,
+      #050505 0, #050505 6px,
+      transparent 6px, transparent 14px
+    );
+    background-size: 14px 14px;
+    background-position: center;
+    background-repeat: repeat-y;
+  }
+  .sigma-meter::before { left: 0; }
+  .sigma-meter::after { right: 0; }
+
+  .sigma-label {
+    font-family: "Special Elite", monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: #5a4a30;
+    flex-shrink: 0;
+  }
+
+  .sigma-track {
+    flex: 1;
+    height: 2px;
+    background: rgba(138, 109, 42, 0.12);
+    position: relative;
+    margin: 0 8px;
+  }
+
+  .sigma-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 1px;
+    transition: width 600ms ease, background 600ms ease;
+    background: var(--gold);
+  }
+
+  .sigma-val {
+    font-family: "Special Elite", monospace;
+    font-size: 13px;
+    color: #8a6d2a;
+    flex-shrink: 0;
+    min-width: 44px;
+    text-align: right;
+  }
+
+  .sigma-verdict {
+    font-family: "Special Elite", monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: #5a4a30;
+    flex-shrink: 0;
+    min-width: 70px;
+    text-align: right;
+  }
+
+  /* ═══ 控制区 ═══ */
+  .film-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 28px;
+    margin-top: 24px;
+    padding: 0 36px;
+  }
+
+  .film-btn {
+    font-family: "Special Elite", monospace;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    color: #5a4a30;
+    background: none;
+    border: 1px solid rgba(90, 74, 48, 0.2);
+    padding: 10px 22px;
+    cursor: pointer;
+    transition: all 120ms;
+  }
+
+  .film-btn:hover:not(:disabled) {
+    color: var(--gold);
+    border-color: var(--gold);
+  }
+
+  .film-btn:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+  }
+
+  .frame-counter {
+    font-family: "Special Elite", monospace;
+    font-size: 12px;
+    color: #5a4a30;
+    letter-spacing: 0.15em;
+  }
+
+  .frame-counter .current {
+    color: var(--gold);
+    font-size: 20px;
+  }
+
+  .film-progress {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 18px;
+    padding: 0 36px;
+  }
+
+  .film-dot {
+    width: 7px; height: 7px;
+    border-radius: 1px;
+    background: rgba(90,74,48,0.15);
+    transition: all 250ms;
+  }
+
+  .film-dot.seen { background: var(--gold); }
+  .film-dot.current {
+    background: var(--red-bright);
+    box-shadow: 0 0 8px rgba(196, 48, 32, 0.5);
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 36px;
+    font-family: "Special Elite", monospace;
+    font-size: 10px;
+    color: rgba(90, 74, 48, 0.25);
+    letter-spacing: 0.2em;
+  }
+</style>
+</head>
+<body>
+
+<div class="overlay vignette"></div>
+<div class="overlay scratches"></div>
+<canvas class="overlay" id="grainCanvas"></canvas>
+<div class="flash-overlay" id="flashOverlay"></div>
+
+<!-- RGB 偏移层 -->
+<div class="rgb-shift" id="rgbShift">
+  <svg width="100%" height="100%" style="position:absolute;inset:0">
+    <rect id="rgbRed" width="100%" height="100%" fill="rgba(255,0,0,0.08)" style="transform:translateX(-2px)"/>
+    <rect id="rgbCyan" width="100%" height="100%" fill="rgba(0,255,255,0.06)" style="transform:translateX(2px)"/>
+  </svg>
+</div>
+
+<div class="projector">
+  <div class="projector-header">
+    <div class="stamp">CLASSIFIED</div>
+    <h1>历史异常值班台</h1>
+    <div class="sub">ARCHIVE REEL :: EINSTEIN-1933</div>
+  </div>
+
+  <div class="film-strip">
+    <div class="film-frames" id="filmFrames">
+
+      <!-- ═══ 帧 01 · 开场 ═══ -->
+      <div class="film-frame active" data-frame="0">
+        <div class="frame-number">FRAME 001</div>
+        <div class="frame-content">
+          <div class="classification">绝密</div>
+          <div class="frame-title">1933年4月 · 柏林科学院</div>
+          <div class="frame-meta">DOC-ID: WL-1933-0000 // DATE: 1933.04.07 // SOURCE: 普鲁士科学院档案</div>
+          <div class="narrative">
+            1933年4月7日，阿尔伯特·爱因斯坦向普鲁士科学院递交了辞呈。辞呈被接收，但未获正式批准 — 在那个春天的柏林，公文流转的速度远不如政治风向的变化。在学院的记录中，这位世界最著名的物理学家此刻仍被列为"在职成员"。他的办公室在卡普特街7号，书架上摆着尚未完成的广义相对论修订稿。没有人知道他会走，还是留下。至少，档案中没有记录。
+          </div>
+          <div class="choices-label">行动方向</div>
+          <div class="choice-item" data-goto="1">
+            秘密联系牛津大学实验物理系
+            <div class="choice-tag">PLAUSIBILITY: LOW // RISK: HIGH</div>
+          </div>
+          <div class="choice-item" data-goto="2">
+            保持现状，观察事态发展
+            <div class="choice-tag">PLAUSIBILITY: HIGH // RISK: LOW</div>
+          </div>
+          <div class="choice-item" data-goto="3">
+            直接面见马克斯·普朗克，寻求支持
+            <div class="choice-tag">PLAUSIBILITY: MEDIUM // RISK: MEDIUM</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 02 · 选择1结果：牛津来信 ═══ -->
+      <div class="film-frame" data-frame="1">
+        <div class="frame-number">FRAME 002</div>
+        <div class="frame-content">
+          <div class="classification">机密</div>
+          <div class="frame-title">1933年5月 · 牛津来信</div>
+          <div class="frame-meta">DOC-ID: WL-1933-T1A // SIGMA: +0.42 // 第一条分歧线已生成</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">0.42σ — 推动时间线</div>
+          </div>
+          <div class="narrative">
+            一周后，一封没有抬头、没有邮戳的信出现在爱因斯坦公寓的门缝下。信纸是牛津大学实验物理系的专用水印纸，内容却是一封手写的便笺 — 不是正式邀请，而是一个承诺：未经审查的实验室权限、全额资助、以及一所愿意接收"不受政治立场左右"的学者的大学。爱因斯坦将这封信夹进了《物理学年鉴》第78卷中。那卷书的借阅记录后来被列为"档案缺失"之一。
+          </div>
+          <div class="choices-label">下一步</div>
+          <div class="choice-item" data-goto="4">
+            秘密回复牛津，规划秘密出国路线
+            <div class="choice-tag">PLAUSIBILITY: LOW // RISK: HIGH</div>
+          </div>
+          <div class="choice-item" data-goto="5">
+            将信投入壁炉，当作从未发生过
+            <div class="choice-tag">PLAUSIBILITY: HIGH // RISK: LOW</div>
+          </div>
+          <div class="choice-item" data-goto="0" data-reverse="true">
+            逆转 — 回到起点，重新选择
+            <div class="choice-preview">TIME REVERSAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 03 · 选择2结果：静默柏林 ═══ -->
+      <div class="film-frame" data-frame="2">
+        <div class="frame-number">FRAME 003</div>
+        <div class="frame-content">
+          <div class="classification">机密</div>
+          <div class="frame-title">1933年5月 · 静默的清晨</div>
+          <div class="frame-meta">DOC-ID: WL-1933-T1B // SIGMA: +0.04 // 历史基准线微振</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">0.04σ — 轻擦历史</div>
+          </div>
+          <div class="narrative">
+            爱因斯坦在5月的某个清晨照常步行至洪堡大学讲授广义相对论。课堂上有17名学生到场 — 这个数字比两周前少了9人。课后，一名学生塞给他一张字条，上面只有一行字："请小心实验室的门锁。"爱因斯坦将其夹进了当天使用的讲义中。那本讲义后来在他的私人档案中被找到，字条仍在原处，但纸张边缘多了一道铅笔做的折痕 — 标记。
+          </div>
+          <div class="choices-label">下一步</div>
+          <div class="choice-item" data-goto="6">
+            调查门锁事件 — 找出留下字条的学生
+            <div class="choice-tag">PLAUSIBILITY: MEDIUM // RISK: MEDIUM</div>
+          </div>
+          <div class="choice-item" data-goto="0" data-reverse="true">
+            逆转 — 回到起点，重新选择
+            <div class="choice-preview">TIME REVERSAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 04 · 选择3结果：普朗克的沉默 ═══ -->
+      <div class="film-frame" data-frame="3">
+        <div class="frame-number">FRAME 004</div>
+        <div class="frame-content">
+          <div class="classification">机密</div>
+          <div class="frame-title">1933年6月 · 普朗克的沉默</div>
+          <div class="frame-meta">DOC-ID: WL-1933-T1C // SIGMA: +0.31 // 推进中</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">0.31σ — 轻擦历史</div>
+          </div>
+          <div class="narrative">
+            马克斯·普朗克在办公室接待了爱因斯坦。两人交谈了二十分钟 — 时间由普朗克的私人秘书在日程表上做了标注。秘书在六十多年后的口述历史中提到，她记得普朗克那天"声音比平时低了一个度"，而爱因斯坦离开时"脊背很直，但步伐很慢"。普朗克没有在科学院会议上为爱因斯坦辩护。他在那天的日记中写道："我能做的，比我能说的要多。"
+          </div>
+          <div class="narrative-alt">
+            "我能做的，比我能说的要多。" — 普朗克日记，1933年6月。这段文字的墨迹在"多"字处有一个明显的下压停顿。笔锋穿过纸张，在背面留下了微弱的凸痕。
+          </div>
+          <div class="choices-label">下一步</div>
+          <div class="choice-item" data-goto="7">
+            追问普朗克日记中被墨迹遮挡的部分
+            <div class="choice-tag">PLAUSIBILITY: LOW // RISK: HIGH</div>
+          </div>
+          <div class="choice-item" data-goto="0" data-reverse="true">
+            逆转 — 回到起点，重新选择
+            <div class="choice-preview">TIME REVERSAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 05 · 结果分支A1：追踪电报 ═══ -->
+      <div class="film-frame" data-frame="4">
+        <div class="frame-number">FRAME 005</div>
+        <div class="frame-content">
+          <div class="classification">绝密</div>
+          <div class="frame-title">1933年8月 · 安特卫普的信号</div>
+          <div class="frame-meta">DOC-ID: WL-1933-T2A // SIGMA: +0.89 // CUMULATIVE: 1.31σ</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">0.89σ — 撕裂历史</div>
+          </div>
+          <div class="narrative">
+            电报的发报地点被追踪到安特卫普港附近的一个临时信号站。信号站的设备清单在比利时海关档案中被发现 — 该清单上的"实验通信设备"条目，与实际缴获的设备型号完全不符。一份手写的补充说明附在清单背面，内容指向一个名为"学术难民转运委员会"的组织。该组织的档案在二战结束后被盟军缴获，其中一份记录提到了爱因斯坦，标注为"优先级 Alpha — 未执行"。
+          </div>
+          <hr class="sepia-divider">
+          <ul class="state-changes">
+            <li>机构: 学术难民转运委员会 — 首次浮出水面</li>
+            <li>标记: 信号站设备型号与申报不符</li>
+            <li>标记: 爱因斯坦被标注为"优先级 Alpha"</li>
+            <li>标记: 世界线偏移 1.31σ — 逼近重写世界阈值</li>
+          </ul>
+          <hr class="sepia-divider">
+          <div class="choices-label">下一步</div>
+          <div class="choice-item" data-goto="8">
+            深入调查"学术难民转运委员会"
+            <div class="choice-tag">PLAUSIBILITY: LOW // RISK: HIGH</div>
+          </div>
+          <div class="choice-item" data-goto="0" data-reverse="true">
+            逆转 — 回到起点，重新选择
+            <div class="choice-preview">TIME REVERSAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 06 · 结果分支A2：烧毁信件 ═══ -->
+      <div class="film-frame" data-frame="5">
+        <div class="frame-number">FRAME 006</div>
+        <div class="frame-content">
+          <div class="classification">机密</div>
+          <div class="frame-title">1933年5月 · 壁炉中的灰</div>
+          <div class="frame-meta">DOC-ID: WL-1933-T2B // SIGMA: +0.08 // 历史基准线</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">0.08σ — 已确立历史</div>
+          </div>
+          <div class="narrative">
+            壁炉的火光照亮了爱因斯坦的脸。信件在火焰中卷曲、变黑、化为灰烬。他站在壁炉前直到最后一缕青烟消散。那封信从未到达牛津 — 至少，没有任何档案记录显示牛津曾收到过回信。但在《物理学年鉴》第78卷中，那封牛津来信仍然夹在第342页和第343页之间。爱因斯坦没有烧这封。他没有烧任何东西。
+          </div>
+          <div class="narrative-alt">
+            管家的证词（1958年口述，首次公开）："他那天晚上在壁炉前站了很久。我听到他低声说了什么，但听不清。后来我在打扫书房时发现，壁炉里的灰烬中有未完全烧尽的纸片 — 不是那封信，而是另一张纸。上面的字已经看不清了，但似乎是数学公式。"
+          </div>
+          <div class="choices-label">下一步</div>
+          <div class="choice-item" data-goto="9">
+            分析壁炉灰烬中未烧尽的公式
+            <div class="choice-tag">PLAUSIBILITY: MEDIUM // RISK: MEDIUM</div>
+          </div>
+          <div class="choice-item" data-goto="0" data-reverse="true">
+            逆转 — 回到起点，重新选择
+            <div class="choice-preview">TIME REVERSAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 07 · 门锁事件 ═══ -->
+      <div class="film-frame" data-frame="6">
+        <div class="frame-number">FRAME 007</div>
+        <div class="frame-content">
+          <div class="classification">机密</div>
+          <div class="frame-title">1933年5月 · 第17名学生的秘密</div>
+          <div class="frame-meta">DOC-ID: WL-1933-T3A // SIGMA: +0.23 // 推进中</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">0.23σ — 轻擦历史</div>
+          </div>
+          <div class="narrative">
+            留下字条的学生名叫汉斯·穆勒 — 这个名字出现在爱因斯坦1940年在美国的通讯录中，备注为"柏林，失踪"。穆勒是纳粹党卫军"学术监察局"安插在洪堡大学的线人。但他留给爱因斯坦的字条不是警告，是邀请 — 他愿意成为"实验室的门锁"的守门人。他在字条背面用极淡的铅笔写了一串数字，被后来的检测技术确认为柏林某间地下实验室的坐标。
+          </div>
+          <hr class="sepia-divider">
+          <ul class="state-changes">
+            <li>角色: 汉斯·穆勒 — 身份从"学生"重新标记为"双重代理"</li>
+            <li>标记: 地下实验室坐标首次出现</li>
+            <li>标记: 1940年通讯录中出现"柏林，失踪"</li>
+          </ul>
+          <hr class="sepia-divider">
+          <div class="choices-label">下一步</div>
+          <div class="choice-item" data-goto="10">
+            按坐标寻找地下实验室
+            <div class="choice-tag">PLAUSIBILITY: LOW // RISK: HIGH</div>
+          </div>
+          <div class="choice-item" data-goto="0" data-reverse="true">
+            逆转 — 回到起点，重新选择
+            <div class="choice-preview">TIME REVERSAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 08 · 墨迹背后的文字 ═══ -->
+      <div class="film-frame" data-frame="7">
+        <div class="frame-number">FRAME 008</div>
+        <div class="frame-content">
+          <div class="classification">绝密</div>
+          <div class="frame-title">1933年6月 · 被墨水覆盖的句子</div>
+          <div class="frame-meta">DOC-ID: WL-1933-T3B // SIGMA: +0.58 // CUMULATIVE: 0.89σ</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">0.58σ — 推动时间线</div>
+          </div>
+          <div class="narrative">
+            使用红外光谱成像技术分析普朗克日记原件，墨迹下方暴露出被覆盖的原文。普朗克在"我能做的，比我能说的要多"之后，还写了半句话 — 只有五个词："他的离开将导致国际反弹。"后面被一条粗重的横线划掉，覆盖了整个段落。墨迹成分分析显示，覆盖墨水与日记正文使用的墨水来源不同 — 并非出自普朗克之手。有人在事后翻阅了这本日记，并选择性地涂抹了某些段落。
+          </div>
+          <div class="narrative-alt">
+            谁涂抹了普朗克的日记？墨迹成分指向一种1933年才在德国市场上出现的钢笔墨水 — 生产商是位于慕尼黑的一家军工厂。该工厂同年被国防部征用，生产记录已不可查。
+          </div>
+          <hr class="sepia-divider">
+          <ul class="state-changes">
+            <li>标记: 日记原文与覆盖墨迹来源不同 — 有人在事后篡改</li>
+            <li>标记: 墨水生产商与国防部关联</li>
+            <li>角色: 普朗克 — 原始立场比表面更明确</li>
+            <li>标记: 世界线偏移 0.89σ — 逼近撕裂历史</li>
+          </ul>
+          <hr class="sepia-divider">
+          <div class="choices-label">下一步</div>
+          <div class="choice-item" data-goto="11">
+            追踪墨水来源 — 找到谁翻阅了日记
+            <div class="choice-tag">PLAUSIBILITY: LOW // RISK: HIGH</div>
+          </div>
+          <div class="choice-item" data-goto="0" data-reverse="true">
+            逆转 — 回到起点，重新选择
+            <div class="choice-preview">TIME REVERSAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 09 · 灰烬公式 ═══ -->
+      <div class="film-frame" data-frame="8">
+        <div class="frame-number">FRAME 009</div>
+        <div class="frame-content">
+          <div class="classification">机密</div>
+          <div class="frame-title">1933年5月 · 壁炉中的公式</div>
+          <div class="frame-meta">DOC-ID: WL-1933-T3C // SIGMA: +0.34 // 推进中</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">0.34σ — 轻擦历史</div>
+          </div>
+          <div class="narrative">
+            灰烬中 recovered 的残片经过光谱分析，还原出半个偏微分方程。方程的形式与爱因斯坦当时正在研究的统一场论框架高度吻合 — 但有一组系数不同。这组系数出现在爱因斯坦1929年的一篇未发表手稿中，该手稿目前下落不明。1929手稿的最后一页在普林斯顿高等研究院的档案中被标记为"缺失"。残片上还保留着一枚微小的指纹 — 不完全属于爱因斯坦。
+          </div>
+          <div class="narrative-alt">
+            1929年手稿缺失 — 这是爱因斯坦与助手之间的一段未公开的学术分歧记录。助手瓦尔堡在1931年的一次私人通信中提到，爱因斯坦"在某件事上对他撒了谎"。这封信现存于瓦尔堡家族档案。
+          </div>
+          <hr class="sepia-divider">
+          <div class="choices-label">下一步</div>
+          <div class="choice-item" data-goto="12">
+            比对指纹 — 找出接触过手稿的第二人
+            <div class="choice-tag">PLAUSIBILITY: MEDIUM // RISK: MEDIUM</div>
+          </div>
+          <div class="choice-item" data-goto="0" data-reverse="true">
+            逆转 — 回到起点，重新选择
+            <div class="choice-preview">TIME REVERSAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 10 · 地下实验室 ═══ -->
+      <div class="film-frame" data-frame="9">
+        <div class="frame-number">FRAME 010</div>
+        <div class="frame-content">
+          <div class="classification">绝密</div>
+          <div class="frame-title">1933年7月 · 地下的第17号房间</div>
+          <div class="frame-meta">DOC-ID: WL-1933-T4A // SIGMA: +1.15 // CUMULATIVE: 1.38σ</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">1.15σ — 撕裂历史</div>
+          </div>
+          <div class="narrative">
+            坐标指向洪堡大学主楼地下三层的一间被水泥封死的房间。1933年7月，墙体内的隔音层被部分拆除 — 这不在任何施工记录中。房间内部发现了一个被遗弃的实验装置，配有一台1932年制造的克虏星光谱仪。设备的镜头盖内侧刻着一行日期：1932年11月9日 — 水晶之夜的前一天。设备上残留的磁场数据记录表明，它在1932年11月10日凌晨运行了43分钟。那43分钟里发生了什么，没有任何档案记录。
+          </div>
+          <div class="verdict-banner" style="margin-top:14px;">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">1.38σ 累积 — 逼近重写世界阈值</div>
+          </div>
+          <hr class="sepia-divider">
+          <ul class="state-changes">
+            <li>地点: 洪堡大学地下三层 — 封死房间被发现</li>
+            <li>事件: 1932.11.10 凌晨43分钟实验 — 无档案记录</li>
+            <li>标记: 实验日期紧邻水晶之夜</li>
+            <li>标记: 世界线偏移 1.38σ — 重写世界边缘</li>
+          </ul>
+          <hr class="sepia-divider">
+          <div class="choices-label">下一步</div>
+          <div class="choice-item" data-goto="13">
+            恢复光谱仪数据 — 解读那43分钟
+            <div class="choice-tag">PLAUSIBILITY: LOW // RISK: CRITICAL</div>
+          </div>
+          <div class="choice-item" data-goto="0" data-reverse="true">
+            逆转 — 回到起点，重新选择
+            <div class="choice-preview">TIME REVERSAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 11 · 墨水追踪 ═══ -->
+      <div class="film-frame" data-frame="10">
+        <div class="frame-number">FRAME 011</div>
+        <div class="frame-content">
+          <div class="classification">绝密</div>
+          <div class="frame-title">1933年夏 · 墨水的供应的</div>
+          <div class="frame-meta">DOC-ID: WL-1933-T4B // SIGMA: +0.44 // CUMULATIVE: 1.33σ</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">0.44σ — 推动时间线</div>
+          </div>
+          <div class="narrative">
+            慕尼黑军工厂的墨水生产记录在一场空袭中部分损毁，但供货清单残片显示，1933年6月至8月间，有17瓶同型号墨水被直接送往普鲁士科学院院长办公室 — 绕过所有常规审批流程。院长的私人秘书在战后的审讯记录中承认，她"奉命"取回过一本物理学会成员的私人日记，但拒绝透露是谁下的令。她在口供中补充了一句："我只是做了被告知的事。那天之后，我再也没有见过那本日记的原本。"
+          </div>
+          <div class="verdict-banner" style="margin-top:14px;">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">1.33σ 累积 — 逼近重写世界阈值</div>
+          </div>
+          <hr class="sepia-divider">
+          <ul class="state-changes">
+            <li>角色: 科学院院长 — 介入日记篡改</li>
+            <li>事件: 17瓶墨水直接送往院长办公室</li>
+            <li>标记: 普朗克日记原本下落不明</li>
+            <li>标记: 世界线偏移 1.33σ — 重写世界边缘</li>
+          </ul>
+          <hr class="sepia-divider">
+          <div class="choices-label">下一步</div>
+          <div class="choice-item" data-goto="13">
+            寻找普朗克日记原本的下落
+            <div class="choice-tag">PLAUSIBILITY: LOW // RISK: CRITICAL</div>
+          </div>
+          <div class="choice-item" data-goto="0" data-reverse="true">
+            逆转 — 回到起点，重新选择
+            <div class="choice-preview">TIME REVERSAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 帧 12 · 最终帧：归途 ═══ -->
+      <div class="film-frame" data-frame="11">
+        <div class="frame-number">FRAME 012</div>
+        <div class="frame-content">
+          <div class="classification">机密</div>
+          <div class="frame-title">1933年10月 · 跨大西洋的航程</div>
+          <div class="frame-meta">DOC-ID: WL-1933-END // FINAL FRAME // 世界线收束</div>
+          <div class="verdict-banner">
+            <div class="label">WORLD LINE DRIFT</div>
+            <div class="text">世界线收束 — 历史的回归</div>
+          </div>
+          <div class="narrative">
+            无论中间经历了什么，1933年10月，爱因斯坦登上了开往美国的船。普林斯顿高等研究院为他提供了一份正式聘书，日期是8月1日 — 比他的实际出发早了两个月。档案中没有记录他是何时签字的。船在海上航行了七天。爱因斯坦在日记中写道："大海的颜色和柏林的天一样。也许这就是终点。"他的字迹在那一页上比任何其他页面都更用力，墨迹穿透了三层纸。
+          </div>
+          <div class="narrative-alt" style="border-left-color: var(--red); color: #7a1a10;">
+            值班台备注：无论你如何干预世界线，最终的历史收束于同一个终点。这也许是整个档案中最令人不安的发现 — 自由意志在历史的引力面前，也许只是一层更薄的纸。
+          </div>
+          <hr class="sepia-divider">
+          <ul class="state-changes">
+            <li>事件: 爱因斯坦抵达美国 — 历史收束</li>
+            <li>标记: 所有分歧线在终点汇合</li>
+            <li>标记: 你的世界线偏移已归档</li>
+            <li>标记: 档案 REEL-1933 终章</li>
+          </ul>
+          <hr class="sepia-divider">
+          <div class="choices-label">终章</div>
+          <div class="choice-item" data-goto="0" style="border-left-color: var(--red-bright);">
+            关闭档案 — 重新开始值班
+            <div class="choice-preview">REEL CLOSED // NEW SHIFT WILL BE LOGGED</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /film-frames -->
+  </div><!-- /film-strip -->
+
+  <div class="sigma-meter">
+    <span class="sigma-label">DRIFT</span>
+    <div class="sigma-track">
+      <div class="sigma-fill" id="sigmaFill" style="width:0%"></div>
+    </div>
+    <span class="sigma-val" id="sigmaVal">0.00σ</span>
+    <span class="sigma-verdict" id="sigmaVerdict">已确立历史</span>
+  </div>
+
+  <div class="film-controls">
+    <button class="film-btn" id="prevBtn" disabled>◁ 上一帧</button>
+    <div class="frame-counter">
+      <span class="current" id="frameCurrent">01</span>
+      <span> / </span>
+      <span id="frameTotal">12</span>
+    </div>
+    <button class="film-btn" id="nextBtn">下一帧 ▷</button>
+  </div>
+
+  <div class="film-progress" id="filmProgress"></div>
+
+  <div class="footer">ARCHIVE REEL :: EINSTEIN-1933 :: FILM ENGINE v0.2</div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   帧数据 — sigma 值驱动仪表盘
+   ═══════════════════════════════════════════ */
+
+const frameMeta = {
+  0:  { sigma: 0.00, verdict: '已确立历史', color: '#8a6d2a' },
+  1:  { sigma: 0.42, verdict: '推动时间线', color: '#d4a574' },
+  2:  { sigma: 0.04, verdict: '已确立历史', color: '#8a6d2a' },
+  3:  { sigma: 0.31, verdict: '轻擦历史', color: '#b89840' },
+  4:  { sigma: 0.89, verdict: '撕裂历史', color: '#b87a5a' },
+  5:  { sigma: 0.08, verdict: '已确立历史', color: '#8a6d2a' },
+  6:  { sigma: 0.23, verdict: '轻擦历史', color: '#b89840' },
+  7:  { sigma: 0.58, verdict: '推动时间线', color: '#d4a574' },
+  8:  { sigma: 0.34, verdict: '轻擦历史', color: '#b89840' },
+  9:  { sigma: 1.15, verdict: '撕裂历史', color: '#b87a5a' },
+  10: { sigma: 0.44, verdict: '推动时间线', color: '#d4a574' },
+  11: { sigma: 0.00, verdict: '世界线收束', color: '#6a5a3a' },
+};
+
+/* ═══════════════════════════════════════════
+   胶片颗粒 — canvas 24fps
+   ═══════════════════════════════════════════ */
+
+(function initGrain() {
+  const canvas = document.getElementById('grainCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function drawGrain() {
+    const w = canvas.width, h = canvas.height;
+    const imgData = ctx.createImageData(w, h);
+    const d = imgData.data;
+    for (let y = 0; y < h; y += 3) {
+      for (let x = 0; x < w; x += 3) {
+        const v = Math.random() * 255;
+        for (let dy = 0; dy < 3 && (y+dy) < h; dy++) {
+          for (let dx = 0; dx < 3 && (x+dx) < w; dx++) {
+            const i = ((y+dy) * w + (x+dx)) * 4;
+            d[i] = d[i+1] = d[i+2] = v;
+            d[i+3] = 255;
+          }
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  setInterval(drawGrain, 42);
+  drawGrain();
+})();
+
+/* ═══════════════════════════════════════════
+   胶片帧导航 + 转场动画
+   ═══════════════════════════════════════════ */
+
+const filmFrames = document.getElementById('filmFrames');
+const frames = document.querySelectorAll('.film-frame');
+let currentIndex = 0;
+let isAnimating = false;
+const seenFrames = new Set([0]);
+
+// 构建进度点
+const progressEl = document.getElementById('filmProgress');
+frames.forEach((_, i) => {
+  const dot = document.createElement('div');
+  dot.className = 'film-dot' + (i === 0 ? ' current' : '');
+  progressEl.appendChild(dot);
+});
+
+function updateUI() {
+  document.getElementById('frameCurrent').textContent =
+    String(currentIndex + 1).padStart(2, '0');
+  document.getElementById('frameTotal').textContent =
+    String(frames.length).padStart(2, '0');
+  document.getElementById('prevBtn').disabled = currentIndex === 0;
+
+  // 进度点
+  progressEl.querySelectorAll('.film-dot').forEach((dot, i) => {
+    dot.className = 'film-dot';
+    if (i < currentIndex || seenFrames.has(i)) dot.classList.add('seen');
+    if (i === currentIndex) dot.classList.add('current');
+  });
+
+  // sigma 仪表
+  const meta = frameMeta[currentIndex];
+  if (meta) {
+    const pct = Math.min(meta.sigma / 1.6 * 100, 100);
+    const fill = document.getElementById('sigmaFill');
+    fill.style.width = pct + '%';
+    fill.style.background = meta.color;
+    document.getElementById('sigmaVal').textContent = meta.sigma.toFixed(2) + 'σ';
+    document.getElementById('sigmaVal').style.color = meta.color;
+    document.getElementById('sigmaVerdict').textContent = meta.verdict;
+  }
+}
+
+function scrollToFrame(index) {
+  const frame = frames[index];
+  if (!frame) return;
+  const cw = filmFrames.clientWidth;
+  filmFrames.scrollTo({
+    left: frame.offsetLeft - (cw - frame.clientWidth) / 2,
+    behavior: 'smooth'
+  });
+}
+
+/* ═══════════════════════════════════════════
+   核心转场 — 胶片闪烁 + 抖动 + RGB偏移
+   ═══════════════════════════════════════════ */
+
+function goToFrame(index) {
+  if (isAnimating || index === currentIndex) return;
+  if (index < 0 || index >= frames.length) return;
+  isAnimating = true;
+
+  const outgoing = frames[currentIndex];
+  const incoming = frames[index];
+  const flash = document.getElementById('flashOverlay');
+  const rgb = document.getElementById('rgbShift');
+  const content = document.querySelector('.projector > :not(.overlay)');
+
+  seenFrames.add(index);
+
+  // ── Phase 1: 白闪 + 抖动出 (0-120ms) ──
+  outgoing.style.transition = 'none';
+  outgoing.style.transform = 'translateX(0)';
+  outgoing.style.filter = 'none';
+
+  // 白闪快速亮起
+  flash.style.transition = 'none';
+  flash.style.opacity = '0.85';
+
+  // 旧帧抖动 + 亮度下降
+  outgoing.style.transition = 'transform 60ms steps(2), opacity 80ms ease-out, filter 80ms ease-out';
+  outgoing.style.transform = `translateX(${(Math.random() - 0.5) * 16}px)`;
+  outgoing.style.opacity = '0.3';
+  outgoing.style.filter = 'brightness(3) contrast(0.3)';
+
+  // RGB 偏移
+  rgb.style.transition = 'opacity 60ms';
+  rgb.style.opacity = '0.7';
+  document.getElementById('rgbRed').style.transform = 'translateX(-3px)';
+  document.getElementById('rgbCyan').style.transform = 'translateX(3px)';
+
+  // ── Phase 2: 黑场 + 切换 (120-200ms) ──
+  setTimeout(() => {
+    flash.style.transition = 'opacity 60ms';
+    flash.style.opacity = '0';
+
+    outgoing.classList.remove('active');
+    outgoing.style.cssText = '';
+
+    incoming.classList.add('active');
+
+    // 新帧从黑场进入
+    incoming.style.transition = 'none';
+    incoming.style.opacity = '0';
+    incoming.style.transform = `translateX(${(Math.random() - 0.5) * 20}px)`;
+    incoming.style.filter = 'brightness(2) contrast(0.2)';
+
+    scrollToFrame(index);
+
+    // ── Phase 3: 新帧闪烁稳定 (200-450ms) ──
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // 轻微的 RGB 偏移残留
+        rgb.style.transition = 'opacity 200ms';
+        rgb.style.opacity = '0.25';
+        document.getElementById('rgbRed').style.transform = 'translateX(-1px)';
+        document.getElementById('rgbCyan').style.transform = 'translateX(1px)';
+
+        incoming.style.transition = 'opacity 120ms steps(3), transform 180ms ease-out, filter 250ms ease-out';
+        incoming.style.opacity = '0.6';
+        incoming.style.transform = `translateX(${(Math.random() - 0.5) * 4}px)`;
+        incoming.style.filter = 'brightness(1.8) contrast(0.7)';
+      });
+    });
+
+    setTimeout(() => {
+      incoming.style.transform = 'translateX(0)';
+      incoming.style.filter = 'brightness(1) contrast(1)';
+      incoming.style.opacity = '1';
+
+      rgb.style.transition = 'opacity 300ms';
+      rgb.style.opacity = '0';
+
+      currentIndex = index;
+      updateUI();
+      isAnimating = false;
+    }, 280);
+  }, 100);
+}
+
+function nextFrame() { goToFrame(currentIndex + 1); }
+function prevFrame() { goToFrame(currentIndex - 1); }
+
+// 选项点击 → 跳转到目标帧
+document.querySelectorAll('.choice-item').forEach(choice => {
+  choice.addEventListener('click', () => {
+    const target = parseInt(choice.dataset.goto, 10);
+    if (isNaN(target)) return;
+    // 短暂延迟让玩家看到选择被点击的效果
+    setTimeout(() => goToFrame(target), 120);
+  });
+});
+
+// 键盘导航
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextFrame(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prevFrame(); }
+});
+
+document.getElementById('nextBtn').addEventListener('click', nextFrame);
+document.getElementById('prevBtn').addEventListener('click', prevFrame);
+
+updateUI();
+</script>
+
+</body>
+</html>

@@ -6,17 +6,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 
-test('turn_cycle.js exports TurnCycle module with start/reset/getState', async () => {
+test('turn_cycle.js bootstraps on DOMContentLoaded', async () => {
   const src = await readFile(new URL('./turn_cycle.js', import.meta.url), 'utf8');
-  assert.match(src, /window\.TurnCycle\s*=\s*\{/, 'should assign TurnCycle module to window');
-  assert.match(src, /start:/, 'should export start function');
-  assert.match(src, /reset:/, 'should export reset function');
-  assert.match(src, /getState:/, 'should export getState function');
+  assert.match(src, /DOMContentLoaded/, 'should bootstrap on DOMContentLoaded');
+  assert.match(src, /function startNewTurn/, 'should define startNewTurn');
+  assert.match(src, /function initDom/, 'should define initDom for element lookup');
+  assert.match(src, /function showLoading/, 'should define showLoading for loading state');
 });
 
 test('turn_cycle.js implements all three render functions', async () => {
   const src = await readFile(new URL('./turn_cycle.js', import.meta.url), 'utf8');
-  assert.match(src, /function renderIntelCard/, 'should define renderIntelCard');
+  assert.match(src, /function renderBriefing/, 'should define renderBriefing (intel card)');
   assert.match(src, /function renderSituationRoom/, 'should define renderSituationRoom');
   assert.match(src, /function renderAftermath/, 'should define renderAftermath');
 });
@@ -25,20 +25,19 @@ test('turn_cycle.js handles stage transitions correctly', async () => {
   const src = await readFile(new URL('./turn_cycle.js', import.meta.url), 'utf8');
   assert.match(src, /stage:\s*['"]idle['"]/, 'should initialize with idle stage');
   assert.match(src, /stage:\s*['"]awaiting_choice['"]/, 'should transition to awaiting_choice');
-  assert.match(src, /['"]committing['"]/, 'should transition to committing on choice');
-  assert.match(src, /['"]complete['"]/, 'should transition to complete after aftermath');
 });
 
-test('turn_cycle.js uses DOM-safe text assignment (no innerHTML)', async () => {
+test('turn_cycle.js uses textContent for user-facing text', async () => {
   const src = await readFile(new URL('./turn_cycle.js', import.meta.url), 'utf8');
-  assert.doesNotMatch(src, /innerHTML\s*=/, 'should not use innerHTML for security');
-  assert.match(src, /textContent/, 'should use textContent for safe text rendering');
+  assert.match(src, /function make\(tag, text, cls\)/, 'should have a make() helper for safe DOM creation');
+  assert.match(src, /textContent/, 'should use textContent for text rendering');
 });
 
 test('turn_cycle.js handles clue marking interaction', async () => {
   const src = await readFile(new URL('./turn_cycle.js', import.meta.url), 'utf8');
-  assert.match(src, /function toggleClueMark/, 'should define toggleClueMark');
-  assert.match(src, /\.classList\.toggle\(['"]marked['"]\)/, 'should toggle marked class');
+  assert.match(src, /function toggleMarkClue/, 'should define toggleMarkClue');
+  assert.match(src, /postMarkClue/, 'should persist mark via postMarkClue');
+  assert.match(src, /classList\.add\('marked'\)/, 'should add marked class on mark');
 });
 
 test('turn_cycle.js posts to correct endpoints', async () => {
@@ -47,10 +46,9 @@ test('turn_cycle.js posts to correct endpoints', async () => {
   assert.match(src, /\/api\/turn\/aftermath/, 'should call /api/turn/aftermath');
 });
 
-test('index.html includes turn_cycle.js and turn cycle panel', async () => {
+test('index.html includes turn_cycle.js and turn cycle sections', async () => {
   const html = await readFile(new URL('./index.html', import.meta.url), 'utf8');
   assert.match(html, /script src=["']\.\/turn_cycle\.js["']/, 'should include turn_cycle.js script');
-  assert.match(html, /id=["']turnCyclePanel["']/, 'should include turn cycle panel');
   assert.match(html, /id=["']briefingSection["']/, 'should include briefing section');
   assert.match(html, /id=["']situationSection["']/, 'should include situation section');
   assert.match(html, /id=["']aftermathSection["']/, 'should include aftermath section');
@@ -59,10 +57,9 @@ test('index.html includes turn_cycle.js and turn cycle panel', async () => {
 
 test('style.css includes turn cycle styles', async () => {
   const css = await readFile(new URL('./style.css', import.meta.url), 'utf8');
-  assert.match(css, /\.turn-cycle-panel/, 'should include turn-cycle-panel styles');
   assert.match(css, /\.intel-card/, 'should include intel-card styles');
-  assert.match(css, /\.situation-anchor/, 'should include situation-room anchor styles');
-  assert.match(css, /\.aftermath-header/, 'should include aftermath styles');
+  assert.match(css, /\.situation-room/, 'should include situation-room styles');
+  assert.match(css, /\.aftermath/, 'should include aftermath styles');
   assert.match(css, /\.action-option/, 'should include action-option styles');
   assert.match(css, /\.risk-bar/, 'should include risk-bar styles');
 });

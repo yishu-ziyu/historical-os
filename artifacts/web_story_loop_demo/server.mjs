@@ -873,19 +873,6 @@ async function callOpenAICompatibleChat(config, prompt, overrides = {}) {
   return text;
 }
 
-async function callModel(payload) {
-  const config = await loadModelConfig();
-  const prompt = buildPrompt(payload);
-
-  if (config.provider === 'minimax') {
-    return config.apiFormat === 'openai'
-      ? callOpenAICompatibleChat(config, prompt)
-      : callAnthropicMessages(config, prompt);
-  }
-
-  return callAnthropicMessages(config, prompt);
-}
-
 function parseModelText(text) {
   const parsed = extractJson(text);
   if (!parsed.story || !Array.isArray(parsed.choices)) {
@@ -1012,7 +999,8 @@ async function runHistoricalRuntime(payload, progressJob = null) {
   ];
 
   try {
-    const raw = await retryWithBackoff(() => callModel(payload));
+    const prompt = buildPrompt(payload);
+    const raw = await retryWithBackoff(() => callModelWithPrompt(prompt, progressJob));
     const generated = parseModelText(raw);
     if (progressJob) {
       emitJobEvent(progressJob, {

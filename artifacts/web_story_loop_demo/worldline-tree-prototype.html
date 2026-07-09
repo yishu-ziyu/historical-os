@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>世界线树 · 原型</title>
+<style>
+  :root {
+    --ink: #1a1612;
+    --paper: #ede2c8;
+    --paper-2: #e0d2b0;
+    --wood: #2a1f15;
+    --wood-2: #3d2d1d;
+    --gold: #8a6d2a;
+    --gold-bright: #c9a55a;
+    --red: #7a2a1d;
+    --red-bright: #b14444;
+    --green: #3d5a3a;
+    --muted: #6b5d45;
+    --line: #8a7a5a;
+    --trunk: #5c3d2e;
+    --branch-0: #c9a55a;
+    --branch-1: #d4a574;
+    --branch-2: #b87a5a;
+    --branch-3: #a05040;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(138, 109, 42, 0.06), transparent 60%),
+      linear-gradient(180deg, #1a1208 0%, #0d0805 100%);
+    color: var(--paper);
+    font-family: "Songti SC", "STSong", "SimSun", Georgia, serif;
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.3;
+    background-image:
+      repeating-linear-gradient(92deg, transparent 0, transparent 3px, rgba(138,109,42,0.02) 3px, rgba(138,109,42,0.02) 4px),
+      repeating-linear-gradient(0deg, transparent 0, transparent 80px, rgba(0,0,0,0.03) 80px, rgba(0,0,0,0.03) 81px);
+  }
+
+  .viewport {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ─── 头部 ─── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 28px;
+    border-bottom: 1px solid rgba(138, 109, 42, 0.25);
+    margin-bottom: 48px;
+  }
+  .header-left h1 {
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--paper);
+  }
+  .header-left .sub {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    font-family: "Courier New", monospace;
+  }
+  .header-right {
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    letter-spacing: 0.15em;
+    line-height: 1.8;
+  }
+  .header-right .val { color: var(--gold-bright); }
+
+  /* ─── 图例 ─── */
+  .legend {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 36px;
+    padding: 14px 20px;
+    background: rgba(42, 31, 21, 0.6);
+    border: 1px solid rgba(138, 109, 42, 0.15);
+    border-radius: 3px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: "Courier New", monospace;
+    letter-spacing: 0.05em;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* ─── 树容器 ─── */
+  .tree-container {
+    position: relative;
+    width: 100%;
+    overflow: auto;
+  }
+
+  .tree-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* 节点样式 */
+  .node-group { cursor: pointer; }
+  .node-group:hover .node-circle { filter: brightness(1.3); }
+  .node-circle {
+    transition: filter 200ms, r 200ms;
+  }
+  .node-label {
+    font-family: "Courier New", monospace;
+    font-size: 10px;
+    fill: var(--muted);
+    text-anchor: middle;
+    pointer-events: none;
+    letter-spacing: 0.05em;
+  }
+  .node-label.active { fill: var(--paper); }
+
+  /* 连接线 */
+  .branch-line {
+    fill: none;
+    stroke-width: 1.2;
+    stroke-linecap: round;
+    opacity: 0.6;
+  }
+
+  /* 卡片浮层 */
+  .node-card {
+    opacity: 0;
+    transition: opacity 300ms;
+    pointer-events: none;
+  }
+  .node-card.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ─── 选中节点详情面板 ─── */
+  .detail-panel {
+    margin-top: 32px;
+    padding: 32px 36px;
+    background:
+      linear-gradient(180deg, rgba(237, 226, 200, 0.02), transparent),
+      var(--wood);
+    border: 1px solid rgba(138, 109, 42, 0.2);
+    border-radius: 3px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    display: none;
+  }
+  .detail-panel.open { display: block; }
+  .detail-panel .classification {
+    display: inline-block;
+    font-family: "Courier New", monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--red-bright);
+    border: 1px solid var(--red);
+    padding: 3px 10px;
+    margin-bottom: 14px;
+  }
+  .detail-panel h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--paper);
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+  .detail-panel .meta {
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 20px;
+  }
+  .detail-panel .body {
+    font-size: 15px;
+    line-height: 1.85;
+    color: var(--paper-2);
+  }
+  .detail-panel .sigma-bar {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px dashed rgba(138,109,42,0.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .sigma-bar .label {
+    font-family: "Courier New", monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    white-space: nowrap;
+  }
+  .sigma-track {
+    flex: 1;
+    height: 3px;
+    background: rgba(138,109,42,0.15);
+    border-radius: 2px;
+    position: relative;
+  }
+  .sigma-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 2px;
+    transition: width 400ms;
+  }
+  .sigma-val {
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    color: var(--gold-bright);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* ─── 底部标注 ─── */
+  .footer-note {
+    margin-top: 40px;
+    font-family: "Courier New", monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-align: center;
+    opacity: 0.5;
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="viewport">
+  <div class="header">
+    <div class="header-left">
+      <h1>世界线树</h1>
+      <div class="sub">CASE :: EINSTEIN-1933 // WORLD LINE DRIFT</div>
+    </div>
+    <div class="header-right">
+      <div>TURN <span class="val">03</span> / 12</div>
+      <div>CUMULATIVE <span class="val" id="cumSigma">1.20</span> σ</div>
+      <div>STATUS <span class="val" id="statusLabel">ACTIVE</span></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#5c3d2e"></div>已确立历史</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c9a55a"></div>轻擦历史 (&lt;0.35σ)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d4a574"></div>推动时间线 (0.35-0.85σ)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#b87a5a"></div>撕裂历史 (0.85-1.60σ)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a05040"></div>重写世界 (&gt;1.60σ)</div>
+  </div>
+
+  <div class="tree-container">
+    <svg class="tree-svg" viewBox="0 0 1100 520" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- 发光滤镜 -->
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <!-- 纸张纹理噪声 -->
+        <filter id="noise">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
+          <feColorMatrix type="saturate" values="0"/>
+          <feBlend in="SourceGraphic" mode="multiply" result="blend"/>
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.04"/>
+          </feComponentTransfer>
+        </filter>
+      </defs>
+
+      <!-- 纸张纹理覆盖层 -->
+      <rect width="1100" height="520" fill="transparent" filter="url(#noise)" opacity="0.5"/>
+
+      <!-- ═══ 连接线（贝塞尔曲线） ═══ -->
+
+      <!-- T0 → T1-A (主线) -->
+      <path class="branch-line" d="M 550 60 C 550 130, 400 160, 280 220"
+            stroke="#c9a55a" stroke-dasharray="4 3" opacity="0.5"/>
+
+      <!-- T0 → T1-B (分支：秘密接触) -->
+      <path class="branch-line" d="M 550 60 C 550 130, 700 160, 820 220"
+            stroke="#d4a574" stroke-dasharray="4 3" opacity="0.5"/>
+
+      <!-- T1-A → T2-A1 (推动时间线) -->
+      <path class="branch-line" d="M 280 260 C 280 310, 180 340, 140 400"
+            stroke="#b87a5a" stroke-dasharray="4 3" opacity="0.5"/>
+
+      <!-- T1-A → T2-A2 (推动时间线) -->
+      <path class="branch-line" d="M 280 260 C 280 310, 340 340, 400 400"
+            stroke="#d4a574" stroke-dasharray="4 3" opacity="0.5"/>
+
+      <!-- T1-B → T2-B1 (撕裂历史) -->
+      <path class="branch-line" d="M 820 260 C 820 310, 880 340, 960 400"
+            stroke="#a05040" stroke-dasharray="4 3" opacity="0.5"/>
+
+      <!-- T1-B → T2-B2 (轻擦历史) -->
+      <path class="branch-line" d="M 820 260 C 820 310, 760 340, 700 400"
+            stroke="#c9a55a" stroke-dasharray="4 3" opacity="0.5"/>
+
+      <!-- ═══ 节点 ═══ -->
+
+      <!-- T0 根节点（已确立历史） -->
+      <g class="node-group" data-node="T0" onclick="selectNode('T0')">
+        <circle class="node-circle" cx="550" cy="60" r="14"
+                fill="#2a1f15" stroke="#5c3d2e" stroke-width="2"/>
+        <circle cx="550" cy="60" r="4" fill="#5c3d2e"/>
+        <text class="node-label active" x="550" y="84">T0 · 1933.04</text>
+      </g>
+
+      <!-- T1-A (主线：爱因斯坦留在柏林) -->
+      <g class="node-group" data-node="T1-A" onclick="selectNode('T1-A')">
+        <circle class="node-circle" cx="280" cy="220" r="12"
+                fill="#2a1f15" stroke="#c9a55a" stroke-width="1.8"/>
+        <circle cx="280" cy="220" r="3.5" fill="#c9a55a"/>
+        <text class="node-label" x="280" y="244">T1-A · 0.18σ</text>
+      </g>
+
+      <!-- T1-B (分支：秘密接触) -->
+      <g class="node-group" data-node="T1-B" onclick="selectNode('T1-B')">
+        <circle class="node-circle" cx="820" cy="220" r="12"
+                fill="#2a1f15" stroke="#d4a574" stroke-width="1.8"/>
+        <circle cx="820" cy="220" r="3.5" fill="#d4a574"/>
+        <text class="node-label" x="820" y="244">T1-B · 0.42σ</text>
+      </g>
+
+      <!-- T2-A1 (推动时间线) -->
+      <g class="node-group" data-node="T2-A1" onclick="selectNode('T2-A1')">
+        <circle class="node-circle" cx="140" cy="400" r="11"
+                fill="#2a1f15" stroke="#b87a5a" stroke-width="1.6"/>
+        <circle cx="140" cy="400" r="3" fill="#b87a5a"/>
+        <text class="node-label" x="140" y="424">T2-A1 · 0.91σ</text>
+      </g>
+
+      <!-- T2-A2 (推动时间线) -->
+      <g class="node-group" data-node="T2-A2" onclick="selectNode('T2-A2')">
+        <circle class="node-circle" cx="400" cy="400" r="11"
+                fill="#2a1f15" stroke="#d4a574" stroke-width="1.6"/>
+        <circle cx="400" cy="400" r="3" fill="#d4a574"/>
+        <text class="node-label" x="400" y="424">T2-A2 · 0.55σ</text>
+      </g>
+
+      <!-- T2-B1 (撕裂历史) -->
+      <g class="node-group" data-node="T2-B1" onclick="selectNode('T2-B1')">
+        <circle class="node-circle" cx="960" cy="400" r="11"
+                fill="#2a1f15" stroke="#a05040" stroke-width="1.6"/>
+        <circle cx="960" cy="400" r="3" fill="#a05040"/>
+        <text class="node-label" x="960" y="424">T2-B1 · 1.24σ</text>
+      </g>
+
+      <!-- T2-B2 (轻擦历史) -->
+      <g class="node-group" data-node="T2-B2" onclick="selectNode('T2-B2')">
+        <circle class="node-circle" cx="700" cy="400" r="11"
+                fill="#2a1f15" stroke="#c9a55a" stroke-width="1.6"/>
+        <circle cx="700" cy="400" r="3" fill="#c9a55a"/>
+        <text class="node-label" x="700" y="424">T2-B2 · 0.22σ</text>
+      </g>
+
+      <!-- 折叠提示节点 -->
+      <g class="node-group" data-node="OLDER" onclick="selectNode('OLDER')" opacity="0.35">
+        <circle class="node-circle" cx="550" cy="60" r="6"
+                fill="#2a1f15" stroke="#5c3d2e" stroke-width="1"/>
+        <text class="node-label" x="550" y="76" style="font-size:8px">+5 更早</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- 选中节点详情 -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="classification" id="detailClass">绝密</div>
+    <h2 id="detailTitle">选择节点查看情报</h2>
+    <div class="meta" id="detailMeta"></div>
+    <div class="body" id="detailBody"></div>
+    <div class="sigma-bar">
+      <span class="label">WORLD LINE SHIFT</span>
+      <div class="sigma-track">
+        <div class="sigma-fill" id="sigmaFill" style="width:0%;background:var(--gold-bright)"></div>
+      </div>
+      <span class="sigma-val" id="sigmaVal">0.00σ</span>
+    </div>
+  </div>
+
+  <div class="footer-note">WORLD LINE TREE :: PROTOTYPE v0.1 :: CASE EINSTEIN-1933</div>
+</div>
+
+<script>
+  const nodeData = {
+    'T0': {
+      title: '1933年4月 · 柏林',
+      class: '绝密',
+      meta: 'DOC-ID: WL-1933-0000 // 已确立历史 // 无偏移',
+      body: '1933年4月，爱因斯坦仍在柏林。普鲁士科学院正式接纳纳粹政权颁布的"雅利安条款"附加条款，要求所有成员提交"非雅利安血统证明"。爱因斯坦于4月7日提交了辞呈。此时的他尚未离开德国 — 历史记录显示他于同年10月正式迁居美国普林斯顿。',
+      sigma: 0,
+    },
+    'T1-A': {
+      title: '1933年5月 · 爱因斯坦滞留柏林',
+      class: '机密',
+      meta: 'DOC-ID: WL-1933-T1A // 0.18σ // 历史基准线',
+      body: '爱因斯坦在辞呈被受理后选择继续留在柏林。他在卡普特街7号的公寓中继续着广义相对论的计算。柏林物理学会内部通讯显示，部分会员私下认为他的离开"只是时间问题"。然而一周过去了，他没有打包任何行李。',
+      sigma: 0.18,
+    },
+    'T1-B': {
+      title: '1933年5月 · 秘密接触',
+      class: '绝密',
+      meta: 'DOC-ID: WL-1933-T1B // 0.42σ // 第一条分歧线',
+      body: '一名自称为"学术互助会"信使的人出现在爱因斯坦公寓楼下。他带来一封来自牛津大学实验物理系的邀请函 — 不是正式公函，而是一封手写便笺，承诺提供未经审查的实验室权限和全额资助。爱因斯坦将这封信夹进了《物理学年鉴》第78卷中。',
+      sigma: 0.42,
+    },
+    'T2-A1': {
+      title: '1933年7月 · 卡普特街的访客',
+      class: '绝密',
+      meta: 'DOC-ID: WL-1933-T2A1 // 0.91σ // 撕裂历史',
+      body: '帝国物理技术局（PTR）的两位调查员以"例行检查"为名访问了卡普特街7号。爱因斯坦的管家后来在证词中提到，来访者在书房停留了47分钟。门缝下可以听到低频的德语交谈，但具体内容无人知晓。这是PTR首次直接介入对爱因斯坦的监视。',
+      sigma: 0.91,
+    },
+    'T2-A2': {
+      title: '1933年6月 · 普朗克的斡旋',
+      class: '机密',
+      meta: 'DOC-ID: WL-1933-T2A2 // 0.55σ // 推动时间线',
+      body: '马克斯·普朗克以普鲁士科学院常任秘书的身份，向教育部提交了一份备忘录。他在文中委婉地提到"一位科学院成员的特殊科学贡献不可替代"，并暗示"国际舆论"可能对德国学术声誉产生长期影响。备忘录的副本在普朗克的私人档案中被发现，纸张边缘有被水浸过的痕迹。',
+      sigma: 0.55,
+    },
+    'T2-B1': {
+      title: '1933年8月 · 理论的终结',
+      class: '绝密',
+      meta: 'DOC-ID: WL-1933-T2B1 // 1.24σ // 严重偏离',
+      body: '柏林科学院宣布冻结所有"非德国血统学者"的研究项目。爱因斯坦的广义相对论手稿被列入"待审查学术成果清单"。同一天，《柏林日报》发表了一篇题为《科学不应被私人信仰绑架》的社论，被学术界普遍认为是对爱因斯坦的直接攻击。他在日记中写道："他们可以拿走实验室，但拿不走真空中的光速。"',
+      sigma: 1.24,
+    },
+    'T2-B2': {
+      title: '1933年5月 · 静默的清晨',
+      class: '机密',
+      meta: 'DOC-ID: WL-1933-T2B2 // 0.22σ // 轻微偏移',
+      body: '爱因斯坦在5月的某个清晨照常步行至洪堡大学讲授广义相对论。课堂上有17名学生到场 — 这个数字比两周前少了9人。课后，一名学生塞给他一张字条，上面只有一行字："请小心实验室的门锁。"爱因斯坦将其夹进了当天使用的讲义中。',
+      sigma: 0.22,
+    },
+    'OLDER': {
+      title: '更早的时间线（已折叠）',
+      class: '机密',
+      meta: '5个节点已折叠 // 点击展开',
+      body: 'T-1 至 T-3 共5个更早的时间线节点因深度超过3层而自动折叠。这些节点记录了爱因斯坦1933年3月之前的行为轨迹 — 包括他在普林斯顿的首次访学邀请、柏林科学院内部的投票记录、以及一封从未寄出的告别信草稿。',
+      sigma: 0.05,
+    },
+  };
+
+  function selectNode(id) {
+    const panel = document.getElementById('detailPanel');
+    const data = nodeData[id];
+    if (!data) return;
+
+    document.getElementById('detailTitle').textContent = data.title;
+    document.getElementById('detailClass').textContent = data.class;
+    document.getElementById('detailMeta').textContent = data.meta;
+    document.getElementById('detailBody').textContent = data.body;
+
+    const pct = Math.min(data.sigma / 1.6 * 100, 100);
+    const fill = document.getElementById('sigmaFill');
+    fill.style.width = pct + '%';
+
+    let color;
+    if (data.sigma < 0.35) color = 'var(--gold-bright)';
+    else if (data.sigma < 0.85) color = '#d4a574';
+    else if (data.sigma < 1.6) color = '#b87a5a';
+    else color = '#a05040';
+    fill.style.background = color;
+
+    document.getElementById('sigmaVal').textContent = data.sigma.toFixed(2) + 'σ';
+    document.getElementById('sigmaVal').style.color = color;
+
+    panel.classList.add('open');
+
+    // 高亮选中节点
+    document.querySelectorAll('.node-group').forEach(g => {
+      const circle = g.querySelector('.node-circle');
+      if (g.dataset.node === id) {
+        circle.setAttribute('filter', 'url(#glow)');
+      } else {
+        circle.removeAttribute('filter');
+      }
+    });
+  }
+</script>
+</body>
+</html>

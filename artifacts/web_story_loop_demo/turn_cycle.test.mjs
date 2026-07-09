@@ -177,7 +177,7 @@ test('/api/turn/aftermath returns narrative and stateChanges when model is unava
 });
 
 test('legacy /api/generate still works for backward compatibility', async () => {
-  const testPort = 8900;
+  const testPort = 8905;
   const { server, home } = spawnServer(testPort);
 
   try {
