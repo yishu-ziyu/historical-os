@@ -5,6 +5,7 @@ const state = {
   role: null,
   world: null,
   situation: null,
+  thread: null,
   turn: 0,
   lastDelta: null,
   busy: false,
@@ -300,6 +301,7 @@ async function doAct(actionId) {
     });
     state.lastDelta = data.delta;
     state.world = data.world;
+    if (data.thread) state.thread = data.thread;
     const sitId = data.situation?.id || null;
     state.animateBeat = sitId !== state.lastSituationId;
     state.lastSituationId = sitId;
@@ -327,6 +329,7 @@ async function doTick() {
     });
     state.lastDelta = data.lastDelta;
     state.world = data.world;
+    if (data.thread) state.thread = data.thread;
     const sitId = data.situation?.id || null;
     state.animateBeat = sitId !== state.lastSituationId;
     state.lastSituationId = sitId;
