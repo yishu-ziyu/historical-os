@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>行走式历史分叉原型</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Historical Walk Prototype / Godot mechanic test</p>
+          <h1>1933 柏林：爱因斯坦的三条路</h1>
+        </div>
+        <div class="status-strip">
+          <span>Canvas 2D</span>
+          <span>WASD / 方向键</span>
+          <span>空格触发</span>
+        </div>
+      </header>
+
+      <section class="game-layout">
+        <div class="play-panel">
+          <canvas id="gameCanvas" width="960" height="540" aria-label="行走式历史分叉试玩画面"></canvas>
+          <div class="hint-bar" id="hintBar">移动到发光地点，按空格读取分叉。</div>
+        </div>
+
+        <aside class="dossier" id="dossier">
+          <p class="eyebrow">当前档案</p>
+          <h2>爱因斯坦仍在柏林</h2>
+          <p>
+            真实历史基准中，他于 1933 年离开德国。当前场景把历史选择做成可触发地点，
+            用来测试“行走探索 + 档案分叉”的可玩性。
+          </p>
+          <div class="facts">
+            <div><strong>世界线稳定度</strong><span id="stability">72%</span></div>
+            <div><strong>公开风险</strong><span id="risk">中</span></div>
+            <div><strong>下一步形态</strong><span id="nextShape">档案卡 / 报纸 / 地图反馈</span></div>
+          </div>
+          <button id="resetButton" type="button">重置场景</button>
+        </aside>
+      </section>
+
+      <section class="notes">
+        <article>
+          <h3>这个原型验证什么</h3>
+          <p>人物可走动不是主玩法本身，而是把抽象历史分叉变成空间选择：走到港口、大学、盖世太保办公室或报社，触发不同后续。</p>
+        </article>
+        <article>
+          <h3>转成 Godot 时</h3>
+          <p>角色用 CharacterBody2D，地点用 Area2D，空格交互后进入 Dialogue / Dossier / Scene Transition，而不是做完整 RPG 地图。</p>
+        </article>
+      </section>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

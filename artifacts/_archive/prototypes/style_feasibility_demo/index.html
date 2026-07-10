@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>架空历史游戏风格可行性 Demo</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Style Feasibility Desk</p>
+          <h1>架空历史游戏视觉方案试验台</h1>
+        </div>
+        <div class="status-strip">
+          <span>Godot 4.x / 2D</span>
+          <span>Compatibility</span>
+          <span>JSON 数据驱动</span>
+        </div>
+      </header>
+
+      <section class="switcher" aria-label="方案切换">
+        <button class="tab is-active" data-style="archive">档案素描风</button>
+        <button class="tab" data-style="pixel">极简像素战略地图</button>
+        <button class="tab" data-style="wargame">纸上兵棋历史地图</button>
+      </section>
+
+      <section class="workspace" data-active-style="archive">
+        <aside class="briefing">
+          <p class="eyebrow">当前验证事件</p>
+          <h2>1933 年，爱因斯坦没有离开德国</h2>
+          <p>
+            Demo 只验证表现形式：一个历史异常如何在地图、人物档案、报纸/电报/年鉴里被表达。
+            真正游戏里，人物和事件大部分应先存在 JSON 数据中，只有被查看或参与事件时才生成可见 UI。
+          </p>
+          <div class="metric-grid">
+            <div>
+              <strong id="assetScore">低</strong>
+              <span>资产压力</span>
+            </div>
+            <div>
+              <strong id="contentFit">高</strong>
+              <span>历史叙事适配</span>
+            </div>
+            <div>
+              <strong id="webFit">高</strong>
+              <span>Web/Godot 可落地</span>
+            </div>
+          </div>
+        </aside>
+
+        <section class="stage" id="stage" aria-live="polite"></section>
+
+        <aside class="decision-panel">
+          <p class="eyebrow">可行性结论</p>
+          <h2 id="styleTitle">档案素描风</h2>
+          <p id="styleSummary"></p>
+          <ul id="styleBullets"></ul>
+          <button class="primary-action" id="advanceBtn">推进一个历史回合</button>
+          <button class="secondary-action" id="resetBtn">重置演示</button>
+        </aside>
+      </section>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
