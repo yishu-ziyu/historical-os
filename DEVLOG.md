@@ -1,5 +1,25 @@
 # DEVLOG
 
+### 2026-07-10 — chore(debt): archive reusable / delete disposable + motion start
+- **Archive**: godot_demo, godot_walking_branch, walking_branch_demo, style_feasibility_demo, godot prompt → `artifacts/_archive/`
+- **Delete**: godot_demo_web (~58MB), all demo verification screenshots, interaction_planning_board.html
+- **Keep live**: identity_chassis_mvp; **keep legacy**: web_story_loop_demo
+- **Align**: PROJECT_MAP, HANDOFF, TODO, manifest, ship state → idle
+- **Dev**: book-page motion (prose/choice enter, object hint pop, echo fade, reduced-motion safe)
+- **Size**: artifacts ~275MB screenshots era → ~76M total
+
+### 2026-07-10 — chore(debt): project map + honest root entry docs
+- **What**: Product face is identity chassis MVP (D+B+C). Root docs no longer point at Godot duty-desk as latest. Added `docs/PROJECT_MAP.md`. Rewrote `HANDOFF.md`, `TODO.md`, `manifest.json`.
+- **Files**:
+  - `docs/PROJECT_MAP.md` (new)
+  - `HANDOFF.md` / `TODO.md` / `manifest.json`
+  - `artifacts/identity_chassis_mvp/` (live MVP; still untracked until commit)
+- **Not done** (needs you):
+  - Physical move of Godot/walking/screenshots → `_archive/` (~130MB+)
+  - Git commit of MVP + untracked case/world assets
+  - yishuship state reset
+- **Deferred**: motion/animation polish
+
 > 项目级交付日志。每次 handoff 追加一条。CLAUDE.md §14.9 规定。
 
 ### 2026-06-28 — feat(turn): marked-clue-state 让玩家判断沉淀到 case state

@@ -1,8 +1,9 @@
 # Godot generated editor/import cache
-artifacts/godot_demo/.godot/
+artifacts/**/.godot/
 
-# Generated Web export; rebuild from artifacts/godot_demo when needed.
+# Generated Web export (deleted; path kept ignored if recreated)
 artifacts/godot_demo_web/
+artifacts/**/godot_demo_web/
 
 # macOS metadata
 .DS_Store
@@ -19,6 +20,6 @@ __pycache__/
 .ship/state.yaml
 .omx/
 
-# macOS system fonts — non-redistributable; non-macOS users should
-# swap to a freely-licensed CJK font in project.godot.
-artifacts/godot_walking_branch/assets/fonts/HiraginoSansGB.ttc
+# macOS system fonts — non-redistributable
+**/HiraginoSansGB.ttc
+**/HiraginoSansGB.ttc.import
