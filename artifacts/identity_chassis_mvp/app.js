@@ -105,6 +105,7 @@ function applyPayload(data) {
   state.sessionId = data.sessionId;
   state.role = data.role;
   state.world = data.world;
+  if (data.thread) state.thread = data.thread;
   const nextSit = data.situation;
   const sitId = nextSit?.id || null;
   state.animateBeat = sitId !== state.lastSituationId;
@@ -157,7 +158,10 @@ function renderPlay() {
   el.whoName.textContent = r.name;
   el.whoJob.textContent = `${r.occupation}`;
   el.metaTime.textContent = s.time || `${w.date} ${w.clock}`;
-  el.metaTurn.textContent = `第 ${state.turn} 拍`;
+  const thr = state.thread;
+  el.metaTurn.textContent = thr?.beat
+    ? `第 ${state.turn} 拍 · 线 ${thr.beat}`
+    : `第 ${state.turn} 拍`;
   el.compileTag.textContent = compileLabel(r.compiledFrom);
 
   const meta = el.whoName.closest('.book-meta');

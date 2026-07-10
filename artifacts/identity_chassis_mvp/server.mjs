@@ -10,6 +10,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
+import {
+  createThread,
+  rememberAct,
+  situationForThread,
+  tickSituationForThread,
+} from './thread_engine.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8901);
@@ -599,208 +605,74 @@ function applyAction(session, actionId) {
     consequence: delta.consequence,
   });
 
-  // Next situation
-  const next = nextSituation(role, world, delta, sit);
+  // Advance story thread (multi-beat continuity)
+  if (!session.thread) session.thread = createThread(role);
+  rememberAct(session.thread, {
+    verb,
+    label: actionLabel,
+    objectId: chosen?.objectId || null,
+  });
+
+  const beatContent = situationForThread({
+    role,
+    world,
+    thread: session.thread,
+  });
+  const next = beatContent
+    ? makeSituation({ role, world, ...beatContent })
+    : openingSituation(role, world);
+
   session.situation = next;
   session.turn += 1;
   session.lastDelta = delta;
 
-  return { ok: true, delta, situation: next, world: publicWorld(world), turn: session.turn };
+  return {
+    ok: true,
+    delta,
+    situation: next,
+    world: publicWorld(world),
+    turn: session.turn,
+    thread: publicThread(session.thread),
+  };
 }
 
 function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n));
 }
 
-function nextSituation(role, world, lastDelta, prevSit) {
-  const tags = prevSit.tags || [];
-
-  if (world.heat >= 4 && Math.random() < 0.55) {
-    return makeSituation({
-      role,
-      world,
-      tags,
-      location: role.placeLabel,
-      prose: [
-        '空气发紧，像雷雨前。',
-        '有人叫你的[[name|名字]]。不是客套。问题普通得像表格。',
-        '你意识到：自己大概已经写进某本不该存在的簿子外围。',
-      ],
-      objects: [{ id: 'name', label: '名字', hint: '被叫到名字，比被推一把更冷。' }],
-      present: [{ name: '问话的人', relation: '系统' }],
-      choices: [
-        { verb: 'ask', label: '反问：您是哪一部门的', objectId: 'name' },
-        { verb: 'hide', label: '用职务应答，尽量缩短对话', objectId: 'name' },
-        { verb: 'walk', label: '找借口离开这条走廊', objectId: 'name' },
-      ],
-    });
-  }
-
-  if (world.flags.let_someone_through && role.place === 'hamburg') {
-    return makeSituation({
-      role,
-      world,
-      tags: ['queue'],
-      location: '汉堡 · 港区侧门',
-      prose: [
-        '傍晚前，一个孩子把一颗[[candy|糖]]放在你窗台上就跑了。没有字条。',
-        '[[horn|汽笛]]响了第三次。你不知道那家人是否已在船上。',
-      ],
-      objects: [
-        { id: 'candy', label: '糖', hint: '谢谢，或者把柄。' },
-        { id: 'horn', label: '汽笛', hint: '船期不等人。' },
-      ],
-      present: [{ name: '空窗台', relation: '回声' }],
-      choices: [
-        { verb: 'stamp', label: '下一份也松一点手', objectId: 'candy' },
-        { verb: 'delay_paper', label: '把窗台上的糖拨开，继续按章', objectId: 'candy' },
-        { verb: 'note', label: '只把船名与时间记下来', objectId: 'horn' },
-      ],
-    });
-  }
-
-  if (world.flags.secret_message || world.flags.carry_message || world.flags.has_notes) {
-    return makeSituation({
-      role,
-      world,
-      tags: tags.includes('lab') ? ['lab'] : ['corridor'],
-      location: role.place === 'hamburg' ? role.placeLabel : '柏林 · 无人的侧廊',
-      prose: [
-        '纸条的下一环没有出现。',
-        '你看见自己的[[drawer|抽屉]]被人翻过——很轻，像提醒，不像搜查。',
-        '走廊里只剩你的呼吸声。',
-      ],
-      objects: [{ id: 'drawer', label: '抽屉', hint: '有人知道你拿过不该拿的东西。' }],
-      present: [{ name: '被翻动的抽屉', relation: '警告' }],
-      choices: [
-        { verb: 'hide', label: '把可疑的东西转移到鞋跟或领衬', objectId: 'drawer' },
-        { verb: 'note', label: '记下翻动的痕迹：角度、时间', objectId: 'drawer' },
-        { verb: 'walk', label: '立刻换地方，不在侧廊停留', objectId: 'drawer' },
-      ],
-    });
-  }
-
-  if (world.flags.published) {
-    return makeSituation({
-      role,
-      world,
-      tags: ['cafe'],
-      location: '柏林 · 报社后门',
-      prose: [
-        '编辑把[[paper|早版]]拍在你胸口：“劲是够了。”',
-        '“有人打电话来，没留名字。”他看你，像在估你会不会跑。',
-      ],
-      objects: [{ id: 'paper', label: '早版', hint: '标题比事实跑得快。' }],
-      present: [{ name: '编辑', relation: '利益' }],
-      choices: [
-        { verb: 'publish_rumor', label: '再挖深一点，把科学院也写进边角', objectId: 'paper' },
-        { verb: 'hide', label: '改口说消息源不可靠，先软化', objectId: 'paper' },
-        { verb: 'follow', label: '去追那个没留名字的电话从哪来', objectId: 'paper' },
-      ],
-    });
-  }
-
-  // Continuity default: your last act leaves a residue + world pressure
-  const residue = (lastDelta.consequence || '').slice(0, 42);
-  const fact = WORLD_ANCHORS.facts.find((f) => role.anchors.includes(f.id)) || WORLD_ANCHORS.facts[0];
-  return makeSituation({
-    role,
-    world,
-    tags: tags.length ? tags : ['corridor'],
-    location: role.placeLabel,
-    prose: [
-      `你刚做完这件事：${lastDelta.label}。`,
-      residue ? `${residue}${residue.length >= 42 ? '…' : ''}` : '空气还没恢复原样。',
-      `街角的[[news|报童]]喊了一嗓子，内容拐弯抹角地碰到你在意的事：${fact.label}。`,
-    ],
-    objects: [{ id: 'news', label: '报童', hint: '公开的噪声里，有时藏着私人的危险。' }],
-    present: prevSit.present?.slice(0, 2) || [],
-    choices: [
-      { verb: 'listen', label: '多听一句报童在喊什么', objectId: 'news' },
-      { verb: 'note', label: '把报上的措辞记下来', objectId: 'news' },
-      { verb: 'walk', label: '离开这片吵闹，换个街区', objectId: 'news' },
-    ],
-  });
+function publicThread(thread) {
+  if (!thread) return null;
+  return {
+    id: thread.id,
+    beat: thread.beat,
+    lastLabel: thread.lastLabel || null,
+    historyLen: (thread.history || []).length,
+  };
 }
 
 function worldTick(session) {
   const world = session.world;
   const role = session.role;
-  const prev = session.situation || {};
+  if (!session.thread) session.thread = createThread(role);
+
   world.clock = clockAdd(world.clock, 15);
   world.heat = clamp(world.heat + (Math.random() < 0.35 ? 1 : 0), 0, 10);
 
-  const isPort = role.place === 'hamburg';
-  const line = isPort
-    ? '广播里报了晚班船延误。队列没有散，骂声换了一批人。'
-    : '有人在街角收走了几份刚贴出的通知。纸边还湿着浆糊。';
+  const line =
+    role.place === 'hamburg'
+      ? '广播里报了晚班船延误。队列没有散，骂声换了一批人。'
+      : '有人在街角收走了几份刚贴出的通知。纸边还湿着浆糊。';
 
   world.news.unshift({ t: `${world.date} ${world.clock}`, line });
   world.log.push({ t: `${world.date} ${world.clock}`, action: '（世界自行推进）', consequence: line });
 
-  // Keep character thread when ticking (student: note; port: queue; else ambient)
-  if (isPort) {
-    session.situation = makeSituation({
-      role,
-      world,
-      tags: ['queue'],
-      location: role.placeLabel,
-      prose: [
-        '你什么也没做的片刻里，世界自己动了。',
-        line,
-        '台上的[[passport|下一本护照]]已经推到你手边，章还温着。',
-      ],
-      objects: [{ id: 'passport', label: '下一本护照', hint: '队列不因你发呆而停。' }],
-      present: [{ name: '下一个人', relation: '工作' }],
-      choices: [
-        { verb: 'stamp', label: '机械地盖下去', objectId: 'passport' },
-        { verb: 'delay_paper', label: '借延误广播，把这份也拖一拖', objectId: 'passport' },
-        { verb: 'ask', label: '抬头问一句：您从哪来', objectId: 'passport' },
-      ],
-    });
-  } else if ((prev.tags || []).includes('lab') || role.occupation.includes('学生')) {
-    session.situation = makeSituation({
-      role,
-      world,
-      tags: ['lab'],
-      location: role.placeLabel,
-      prose: [
-        '你站着没动。世界却动了。',
-        line,
-        '袖口里的[[note|纸条]]还在。走廊尽头的[[watcher|笔尖]]似乎停了一下，又响起来。',
-      ],
-      objects: [
-        { id: 'note', label: '纸条', hint: '还在你身上。' },
-        { id: 'watcher', label: '笔尖', hint: '他可能在等你先走。' },
-      ],
-      present: [{ name: '记录者', relation: '远' }],
-      choices: [
-        { verb: 'carry_message', label: '立刻把纸条送出去', objectId: 'note' },
-        { verb: 'follow', label: '去街角看通知被收去哪', objectId: 'watcher' },
-        { verb: 'hide', label: '继续装成看公告的学生', objectId: 'watcher' },
-      ],
-    });
-  } else {
-    session.situation = makeSituation({
-      role,
-      world,
-      tags: prev.tags || ['corridor'],
-      location: role.placeLabel,
-      prose: [
-        '你什么也没做的片刻里，世界自己动了。',
-        line,
-        '你面前仍有一件[[matter|眼前的事]]要处理，它不会因为你发呆而消失。',
-      ],
-      objects: [{ id: 'matter', label: '眼前的事', hint: '回到你的岗位与物件。' }],
-      present: prev.present?.slice(0, 2) || [],
-      choices: [
-        { verb: 'listen', label: '先听清楚外面在发生什么', objectId: 'matter' },
-        { verb: 'note', label: '把刚听到的记下来', objectId: 'matter' },
-        { verb: 'walk', label: '走出去看一眼', objectId: 'matter' },
-      ],
-    });
-  }
-
+  // Stay on-thread; do not skip story beats
+  const content = tickSituationForThread({
+    role,
+    world,
+    thread: session.thread,
+  });
+  session.situation = makeSituation({ role, world, ...content });
   session.turn += 1;
   session.lastDelta = {
     actionId: 'world_tick',
@@ -847,12 +719,14 @@ function publicRole(role) {
 function startSession({ presetId, customText }) {
   const role = presetId ? compilePreset(presetId) : compileRoleFromText(customText);
   const world = createInitialWorld(role);
+  const thread = createThread(role);
   const situation = openingSituation(role, world);
   const sessionId = id('sess');
   const session = {
     id: sessionId,
     role,
     world,
+    thread,
     situation,
     turn: 1,
     createdAt: new Date().toISOString(),
@@ -865,6 +739,7 @@ function startSession({ presetId, customText }) {
     world: publicWorld(world),
     situation,
     turn: 1,
+    thread: publicThread(thread),
   };
 }
 
@@ -967,6 +842,7 @@ const server = http.createServer(async (req, res) => {
         situation: session.situation,
         turn: session.turn,
         lastDelta: session.lastDelta,
+        thread: publicThread(session.thread),
       });
     }
 
@@ -1000,6 +876,7 @@ const server = http.createServer(async (req, res) => {
         situation: session.situation,
         turn: session.turn,
         lastDelta: session.lastDelta,
+        thread: publicThread(session.thread),
       });
     }
 
