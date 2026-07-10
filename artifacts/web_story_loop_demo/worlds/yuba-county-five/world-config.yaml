@@ -1,0 +1,206 @@
+world_id: yuba-county-five
+world_name: "尤巴县五人"
+world_name_en: "Yuba County Five"
+subtitle: "American Dyatlov Pass"
+era: "1978年2月"
+location: "美国加州北部 · 尤巴城 / 普卢默斯国家森林"
+classification: "未解悬案 · 人口失踪"
+theme: "五个心智障碍者驱车112公里走向完全相反的方向。四具尸体在一座无人看管的森林拖车旁被发现。第五个人从未找到。"
+narrative_mode: "nonlinear-detective"
+tone: "archive-realism + quiet horror"
+
+sigma_metric: "叙事可信度崩塌度"
+sigma_low: 0.1    # "这就是一场意外" -- 官方解释
+sigma_mid: 0.5    # "有更深层的线索被忽略了" -- 深入调查
+sigma_high: 1.0   # "这不是事故" -- 人造痕迹明显
+sigma_max: 2.0    # "真相被系统性掩盖了" -- 档案缝隙全部打开
+
+acts:
+  act1:
+    id: act1
+    title: "篮球赛之夜"
+    title_en: "The Night of the Game"
+    date: "1978-02-24"
+    frames: [frame-101, frame-102, frame-103]
+    summary: >
+      五个年轻人从尤巴城出发，驱车112公里北上参加加州州立大学奇科分校的篮球赛。
+      比赛结束后的某个时刻，他们掉头南下，驶入了普卢默斯国家森林深处。
+      没有理由。没有争吵记录。没有人知道他们为什么改变了方向。
+
+  act2:
+    id: act2
+    title: "弃车与搜救"
+    title_en: "Abandonment & Search"
+    date_range: "1978-02-25 至 1978-02-28"
+    frames: [frame-201, frame-202, frame-203, frame-204]
+    summary: >
+      1969年墨丘利蒙特哥轿车被遗弃在一条封路的雪中森林小道上。
+      四人死亡。一人失踪。一名路过的徒步者声称看到了与五人无关的陌生人。
+      搜救展开，但没有人找到加里·马蒂亚斯。
+
+  act3:
+    id: act3
+    title: "发现尸体 · 加里失踪"
+    title_en: "Bodies Found · Gary Missing"
+    date_range: "1978-06 至 今"
+    frames: [frame-301, frame-302, frame-303]
+    summary: >
+      夏季融雪后，四具尸体在爱德华兹牧场附近的一座美国林务局拖车中被发现。
+      泰德·韦尔有食物、有毛毯、有火源，却饿死了。
+      加里·马蒂亚斯 -- 唯一有正常驾驶资格的人 -- 从未被找到。
+
+characters:
+  main_group:
+    - id: gary_mathias
+      name: "加里·马蒂亚斯"
+      name_en: "Gary Mathias"
+      age: 25
+      role: "唯一退伍军人 / 唯一持照驾驶员 / 唯一精神状况'正常'的人"
+      disability: "精神分裂症 (稳定期，定期服药)"
+      fate: "失踪"
+      color: "#3a7bd5"
+      quote: "他应该是最不可能消失的那个人。"
+
+    - id: ted_weiher
+      name: "泰德·韦尔"
+      name_en: "Theodore Weiher"
+      age: 24
+      role: "最年长 / 智力发育迟缓 / 五人中体型最大"
+      disability: "智力发育迟缓 (IQ ~ 70)"
+      fate: "死亡"
+      color: "#8a5a2a"
+      quote: "他死了 -- 但不是冻死的。他坐在有食物和火的房间里。"
+
+    - id: jack_huett
+      name: "杰克·休伊特"
+      name_en: "Jack Huett"
+      age: 24
+      role: "五人中最瘦弱 / 描述为'从来没有真正长大'"
+      disability: "轻度智力障碍"
+      fate: "死亡"
+      color: "#5a8a3a"
+      quote: "他只剩下一只鞋和部分下颌骨。"
+
+    - id: bill_sterling
+      name: "比尔·斯特林"
+      name_en: "Bill Sterling"
+      age: 29
+      role: "体格健壮 / 智力发育迟缓"
+      disability: "智力发育迟缓"
+      fate: "死亡"
+      color: "#7a3a6a"
+      quote: "他走了很远的路 -- 但他为什么走？"
+
+    - id: jack_madruga
+      name: "杰克·马德鲁加"
+      name_en: "Jack Madruga"
+      age: 32
+      role: "最年长 / 智力发育迟缓 / 越南老兵"
+      disability: "智力发育迟缓 (IQ ~ 70)"
+      fate: "死亡"
+      color: "#6a5a2a"
+      quote: "他甚至不认识回家的路 -- 但他开车上了高速。"
+
+  witnesses:
+    - id: joe_shones
+      name: "乔·肖恩斯"
+      name_en: "Joe Shones"
+      role: "路过的徒步者，声称看到多人"
+      key_detail: >
+        他在雪中跌倒，声称看到一个女人抱着婴儿，还有其他四五个成年人。
+        其中一人帮助他站起。后来他被告知那些都是尸体 -- 他声称那不是他看到的。
+      uncertainty: "他声称自己没有喝酒，但草药医生检测到他体内有酒精。"
+
+archive_gaps:
+  - id: ag1
+    label: "为什么要掉头"
+    detail: >
+      尤巴城到奇科是常规路线。他们走对了路。比赛后他们掉头南下，驶入了一条他们从未去过的森林。
+      没有任何人有理由改变方向。
+
+  - id: ag2
+    label: "为什么弃车"
+    detail: >
+      车完全正常。轮胎有气压，引擎可以启动，油箱有油。
+      他们在雪中步行32公里 -- 到一个他们不知道的拖车。
+      弃车的动机不明。
+
+  - id: ag3
+    label: "泰德为什么死"
+    detail: >
+      拖车里有12罐食物、一个丙烷炉、木柴、毛毯。
+      泰德·韦尔死了 -- 但不是冻死的。他被发现了，床边有食物。
+      他为什么没有打开食物？
+
+  - id: ag4
+    label: "加里在哪里"
+    detail: >
+      唯一持照驾驶员。唯一精神状况"正常"的人。
+      从未找到。从未见过尸体。
+      他到底发生了什么？
+
+  - id: ag5
+    label: "乔·肖恩斯看到了谁"
+    detail: >
+      他看到五到七个人。其中一人抱着婴儿。
+      尸体只有四人。加里失踪。
+      那些"其他的人"是谁？
+
+evidence_catalog:
+  - id: ev1
+    type: "physical"
+    item: "1969年墨丘利蒙特哥轿车"
+    status: "已找到，车况良好，后备箱有购物袋和罐头"
+    source: "加利福尼亚州巡警"
+
+  - id: ev2
+    type: "physical"
+    item: "美国林务局12×12拖车 (FE36)"
+    status: "发现时门从内反锁"
+    source: "搜救队"
+
+  - id: ev3
+    type: "physical"
+    item: "十二罐食物 + 毛毯 + 丙烷炉 + 木柴"
+    status: "拖车内，未被触碰"
+    source: "搜救队"
+
+  - id: ev4
+    type: "physical"
+    item: "一枚不属于任何受害者的手表"
+    status: "在拖车附近发现，机芯有淡水锈蚀"
+    source: "加州调查局"
+
+  - id: ev5
+    type: "physical"
+    item: "杰克·休伊特的鞋"
+    status: "距拖车约1.6公里，鞋带系好，鞋内无脚"
+    source: "搜救队"
+
+  - id: ev6
+    type: "physical"
+    item: "乔·肖恩斯的证词"
+    status: "多次陈述略有出入"
+    source: "乔·肖恩斯本人"
+
+  - id: ev7
+    type: "document"
+    item: "驾车路线记录"
+    status: >
+      从尤巴城到奇科是笔直的西向公路。
+      从奇科回家也是同一条路。
+      他们在奇科以北约32公里处向南转弯，驶入了一条封路的森林道路。
+    source: "加州公路巡警"
+
+  - id: ev8
+    type: "document"
+    item: "泰德·韦尔的医疗记录"
+    status: "证明他有周期性哮喘发作"
+    source: "尤巴县医疗中心"
+
+visual_references:
+  - id: vr1
+    type: "film"
+    source: "(diamondart)尤巴县五人事件（1978）"
+    path: "/Users/mahaoxuan/Downloads/(diamondart)尤巴县五人事件（1978）：...mp4"
+    note: "17秒钻石动画，视觉素材"
