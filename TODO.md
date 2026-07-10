@@ -13,7 +13,7 @@
 ## Now
 
 - [x] Book-page motion (page enter, object select, choice press, consequence fade)
-- [ ] Multi-beat continuity (less repetition across 5+ beats)
+- [x] Multi-beat continuity (less repetition across 5+ beats)
 - [ ] Commit when you ask
 
 ## Later
