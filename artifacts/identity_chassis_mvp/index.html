@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>1933 · 你在历史里</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="paper-bg" aria-hidden="true"></div>
+
+  <!-- ENTRY -->
+  <div id="screen-entry" class="screen entry">
+    <header class="masthead">
+      <p class="kicker">1933</p>
+      <h1>你在历史里</h1>
+      <p class="lede">
+        读一段正在发生的事，点一个物件或直接做选择。
+        世界会自己走；你搅和一点，故事就歪一点。
+      </p>
+    </header>
+
+    <section class="panel">
+      <h2>预设身份</h2>
+      <div id="preset-list" class="preset-grid"></div>
+    </section>
+
+    <section class="panel">
+      <h2>自己切入</h2>
+      <p class="hint">例如：汉堡港证件办事员、咖啡馆老板… 没写过也能进。</p>
+      <form id="custom-form" class="custom-form">
+        <input id="custom-input" type="text" maxlength="80" placeholder="输入你想成为的人…" autocomplete="off" />
+        <button type="submit" class="btn primary">进入</button>
+      </form>
+    </section>
+
+    <p id="entry-error" class="error" hidden></p>
+    <footer class="fineprint">
+      呈现：D 书页感 · B 一拍一事 · C 正文物件可点
+    </footer>
+  </div>
+
+  <!-- PLAY: book page -->
+  <div id="screen-play" class="screen play" hidden>
+    <div class="book">
+      <header class="book-meta">
+        <div>
+          <span id="who-name" class="who-name"></span>
+          <span id="who-job" class="who-job"></span>
+        </div>
+        <div class="book-meta-right">
+          <span id="meta-time"></span>
+          <span id="meta-turn"></span>
+        </div>
+      </header>
+
+      <p id="first-guide" class="first-guide" hidden>
+        先读正文。可点标了下划线的物件，或直接选下面的做法。
+      </p>
+
+      <article id="prose" class="prose" aria-live="polite"></article>
+
+      <p id="object-hint" class="object-hint" hidden></p>
+
+      <section class="choices-block">
+        <p class="choices-q" id="choices-q">你怎么办？</p>
+        <div id="actions" class="choices"></div>
+      </section>
+
+      <aside id="consequence" class="echo" hidden></aside>
+
+      <details class="fold">
+        <summary>你还知道什么 · 世界的动静</summary>
+        <div class="fold-grid">
+          <div>
+            <h3>你还知道</h3>
+            <ul id="knows" class="compact-list"></ul>
+          </div>
+          <div>
+            <h3>世界的动静</h3>
+            <ul id="news" class="compact-list"></ul>
+          </div>
+        </div>
+        <div class="fold-meters" aria-hidden="true">
+          <div class="meter-mini"><span>局势</span><div class="bar"><i id="bar-heat"></i></div></div>
+          <div class="meter-mini"><span>被盯</span><div class="bar"><i id="bar-suspicion"></i></div></div>
+        </div>
+      </details>
+
+      <footer class="book-foot">
+        <button type="button" id="btn-tick" class="linkish">发呆片刻（世界自己走）</button>
+        <button type="button" id="btn-restart" class="linkish">换身份</button>
+        <span id="compile-tag" class="compile-tag"></span>
+      </footer>
+    </div>
+  </div>
+
+  <div id="loading" class="loading" hidden>进入中…</div>
+  <script src="./app.js" type="module"></script>
+</body>
+</html>

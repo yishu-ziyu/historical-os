@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>注意力引导 · 设计方案对照</title>
+  <style>
+    :root {
+      --ink: #1c1917;
+      --muted: #57534e;
+      --paper: #f5f0e6;
+      --line: #d6d0c4;
+      --note: #9a3412;
+      --note-bg: #fff7ed;
+      --you: #1d4ed8;
+      --you-bg: #eff6ff;
+      --ok: #166534;
+      --accent: #7f1d1d;
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", serif;
+      --sans: "Avenir Next", "PingFang SC", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #e7e2d6;
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.55;
+    }
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px 100px;
+    }
+    .hero {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      padding: 28px 28px 24px;
+      margin-bottom: 28px;
+    }
+    .hero .tag {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 8px;
+    }
+    .hero h1 {
+      font-family: var(--serif);
+      font-size: clamp(1.6rem, 3vw, 2.1rem);
+      margin: 0 0 12px;
+      font-weight: 600;
+    }
+    .hero p { margin: 0 0 10px; color: var(--muted); max-width: 52em; }
+    .contract {
+      margin-top: 16px;
+      padding: 12px 14px;
+      background: #1c1917;
+      color: #fafaf9;
+      font-family: var(--serif);
+      font-size: 1.05rem;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      margin: 18px 0 8px;
+      font-size: 13px;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot {
+      width: 10px; height: 10px; border-radius: 2px; display: inline-block;
+    }
+    .dot.mine { background: var(--note); }
+    .dot.yours { background: var(--you); }
+    .dot.keep { background: var(--ok); }
+
+    .scheme {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      margin-bottom: 36px;
+      overflow: hidden;
+    }
+    .scheme-head {
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      gap: 8px;
+    }
+    .scheme-head h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-family: var(--serif);
+    }
+    .scheme-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pill {
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      border: 1px solid var(--line);
+      padding: 3px 8px;
+      color: var(--muted);
+      background: #fffdf8;
+    }
+    .pill.rec {
+      border-color: var(--ok);
+      color: var(--ok);
+      background: #f0fdf4;
+    }
+    .scheme-desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      max-width: 60em;
+    }
+
+    .stage-wrap {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 0;
+      min-height: 520px;
+    }
+    @media (max-width: 900px) {
+      .stage-wrap { grid-template-columns: 1fr; }
+    }
+
+    /* mock phone/desktop frame */
+    .mock-frame {
+      padding: 20px;
+      background: #ddd6c8;
+      border-right: 1px solid var(--line);
+    }
+    .mock {
+      background: #f3efe6;
+      border: 1px solid #c4b8a4;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      max-width: 420px;
+      margin: 0 auto;
+      position: relative;
+      min-height: 560px;
+      font-family: var(--serif);
+      color: #1c1917;
+    }
+
+    /* annotation layer */
+    .anno {
+      position: absolute;
+      z-index: 5;
+      font-family: var(--sans);
+      font-size: 11px;
+      line-height: 1.35;
+      max-width: 150px;
+      padding: 6px 8px;
+      border: 1px dashed currentColor;
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      pointer-events: none;
+    }
+    .anno.mine { color: var(--note); background: var(--note-bg); }
+    .anno.yours { color: var(--you); background: var(--you-bg); }
+    .anno.keep { color: var(--ok); background: #f0fdf4; }
+    .anno::before {
+      content: attr(data-n);
+      display: inline-block;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+    .anno-line {
+      position: absolute;
+      z-index: 4;
+      border-left: 1px dashed var(--note);
+      pointer-events: none;
+    }
+
+    .notes-panel {
+      padding: 18px 18px 24px;
+      background: #fffdf8;
+      overflow: auto;
+    }
+    .notes-panel h3 {
+      margin: 0 0 12px;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .note-item {
+      border-left: 3px solid var(--note);
+      padding: 8px 10px 10px;
+      margin-bottom: 12px;
+      background: var(--note-bg);
+      font-size: 13px;
+    }
+    .note-item.yours {
+      border-left-color: var(--you);
+      background: var(--you-bg);
+    }
+    .note-item.keep {
+      border-left-color: var(--ok);
+      background: #f0fdf4;
+    }
+    .note-item strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+    .note-item .role {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    /* —— Scheme A: current problems (as-is simplified) —— */
+    .a-top {
+      display: flex; justify-content: space-between;
+      padding: 12px 14px; border-bottom: 1px solid #c4b8a4;
+      font-size: 12px;
+    }
+    .a-meters {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      padding: 10px 14px; font-size: 10px; color: #57534e;
+    }
+    .a-bar { height: 5px; background: #e7e5e4; margin-top: 4px; }
+    .a-bar i { display: block; height: 100%; width: 25%; background: #7f1d1d; }
+    .a-card {
+      margin: 8px 12px; padding: 12px; background: #fffdf8;
+      border: 1px solid #c4b8a4; font-size: 12px; line-height: 1.5;
+    }
+    .a-card .loc { color: #7f1d1d; font-size: 10px; letter-spacing: 0.06em; }
+    .a-pressure {
+      margin-top: 8px; padding: 6px 8px; background: #e8e0d0;
+      border-left: 3px solid #1c1917; font-size: 11px;
+    }
+    .a-chip {
+      display: inline-block; border: 1px solid #c4b8a4;
+      padding: 2px 6px; font-size: 10px; margin-top: 6px; color: #57534e;
+    }
+    .a-actions { padding: 8px 12px; display: grid; gap: 6px; }
+    .a-btn {
+      background: #1c1917; color: #fafaf9; padding: 10px;
+      font-size: 12px; font-family: var(--serif);
+    }
+    .a-btn small { display: block; opacity: 0.6; font-size: 9px; margin-top: 2px; }
+    .a-cons {
+      margin: 0 12px 8px; padding: 8px; background: #f7f3e8;
+      border: 1px solid #c4b8a4; font-size: 11px;
+    }
+    .a-bottom {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      padding: 8px 12px 14px; font-size: 10px; color: #57534e;
+    }
+    .a-bottom div {
+      border: 1px solid #c4b8a4; padding: 8px; background: #fffdf8;
+    }
+
+    /* —— Scheme B: stage light (recommended) —— */
+    .b-top {
+      padding: 10px 14px 6px; font-size: 11px; color: #57534e;
+      border-bottom: 1px solid #e7e5e4;
+    }
+    .b-top b { color: #1c1917; font-size: 13px; }
+    .b-guide {
+      margin: 10px 14px 0; font-size: 11px; color: #9a3412;
+      font-family: var(--sans); letter-spacing: 0.02em;
+    }
+    .b-stage {
+      margin: 8px 14px 12px; padding: 16px 14px 14px;
+      background: #fffdf8; border: 1px solid #1c1917;
+      min-height: 200px;
+    }
+    .b-stage .loc {
+      font-family: var(--sans); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: #7f1d1d; margin-bottom: 8px;
+    }
+    .b-stage .body {
+      font-size: 14px; line-height: 1.7; margin: 0 0 12px;
+    }
+    .b-stage .hook {
+      font-size: 13px; line-height: 1.55; margin: 0;
+      padding-top: 10px; border-top: 1px solid #e7e5e4;
+      font-weight: 600;
+    }
+    .b-who {
+      font-family: var(--sans); font-size: 10px; color: #78716c;
+      margin-top: 10px;
+    }
+    .b-act-label {
+      padding: 0 14px; font-family: var(--sans); font-size: 10px;
+      letter-spacing: 0.08em; text-transform: uppercase; color: #78716c;
+    }
+    .b-actions { padding: 8px 14px 14px; display: grid; gap: 8px; }
+    .b-btn {
+      text-align: left; border: 1px solid #1c1917;
+      background: #1c1917; color: #fafaf9;
+      padding: 12px 12px; font-family: var(--serif); font-size: 13px;
+      line-height: 1.4;
+    }
+    .b-echo {
+      margin: 0 14px 14px; font-size: 11px; color: #57534e;
+      font-style: italic; border-top: 1px solid #e7e5e4; padding-top: 8px;
+    }
+    .b-fold {
+      margin: 0 14px 16px; font-family: var(--sans); font-size: 10px;
+      color: #a8a29e; display: flex; gap: 12px;
+    }
+
+    /* —— Scheme C: object hotspots —— */
+    .c-top {
+      padding: 10px 14px; font-size: 11px; border-bottom: 1px solid #e7e5e4;
+    }
+    .c-room {
+      margin: 12px 14px; height: 220px; position: relative;
+      background:
+        linear-gradient(180deg, #ebe4d6 0%, #ddd4c2 100%);
+      border: 1px solid #a8a29e;
+    }
+    .c-room .cap {
+      position: absolute; left: 10px; top: 8px;
+      font-size: 10px; color: #57534e; font-family: var(--sans);
+    }
+    .c-hot {
+      position: absolute;
+      border: 1.5px solid #1c1917;
+      background: rgba(255,253,248,0.88);
+      padding: 6px 8px; font-size: 11px; cursor: default;
+      max-width: 110px; line-height: 1.3;
+    }
+    .c-hot em {
+      display: block; font-style: normal; font-size: 9px;
+      color: #7f1d1d; font-family: var(--sans); margin-bottom: 2px;
+    }
+    .c-hot.sel { outline: 2px solid #9a3412; background: #fff7ed; }
+    .c-narr {
+      margin: 0 14px 10px; font-size: 13px; line-height: 1.65;
+    }
+    .c-actions { padding: 0 14px 16px; display: grid; gap: 6px; }
+    .c-btn {
+      border: 1px solid #1c1917; background: #fffdf8;
+      padding: 10px; font-size: 12px; font-family: var(--serif); text-align: left;
+    }
+    .c-btn.primary { background: #1c1917; color: #fafaf9; }
+
+    /* —— Scheme D: book page —— */
+    .d-page {
+      padding: 18px 20px 20px;
+    }
+    .d-meta {
+      font-family: var(--sans); font-size: 10px; color: #78716c;
+      margin-bottom: 16px; display: flex; justify-content: space-between;
+    }
+    .d-body {
+      font-size: 14.5px; line-height: 1.85; margin: 0 0 18px;
+    }
+    .d-body p { margin: 0 0 0.9em; }
+    .d-choices {
+      border-top: 1px solid #1c1917; padding-top: 12px;
+    }
+    .d-choices .q {
+      font-size: 12px; color: #57534e; margin-bottom: 8px;
+    }
+    .d-choice {
+      display: block; width: 100%; text-align: left;
+      border: none; border-bottom: 1px solid #d6d3d1;
+      background: transparent; padding: 10px 0;
+      font-family: var(--serif); font-size: 13px; color: #1c1917;
+    }
+    .d-choice:hover { color: #7f1d1d; }
+
+    .compare {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      padding: 20px 22px;
+      margin-bottom: 28px;
+    }
+    .compare h2 {
+      font-family: var(--serif);
+      margin: 0 0 12px;
+      font-size: 1.2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #fffdf8; font-weight: 600; }
+    td.rec { background: #f0fdf4; }
+
+    .pick {
+      background: #1c1917;
+      color: #fafaf9;
+      padding: 22px;
+      border: 1px solid #1c1917;
+    }
+    .pick h2 { margin: 0 0 10px; font-family: var(--serif); font-size: 1.2rem; }
+    .pick p { margin: 0 0 12px; color: #d6d3d1; font-size: 0.95rem; }
+    .pick ol { margin: 0; padding-left: 1.2em; color: #e7e5e4; }
+    .pick li { margin-bottom: 6px; }
+    .pick code {
+      background: #292524; padding: 1px 6px; border-radius: 3px;
+      font-size: 12px;
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #78716c;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <p class="tag">Design review · Identity chassis MVP</p>
+      <h1>注意力该怎么引导？四套呈现方案</h1>
+      <p>
+        你反馈：玩一两下觉得混杂、不知道怎么玩——主要是布局 + 内容呈现，根子是
+        <strong>没想清如何引导注意力</strong>。
+      </p>
+      <p>
+        本页把「现在的问题结构」和「三种改法」做成可对照的 mock。
+        橙色标注 = 我建议的设计意图 / 想怎么改；
+        蓝色 = 预留给你批注的决策点（你可直接口头说编号）；
+        绿色 = 建议保留。
+      </p>
+      <div class="contract">
+        共同合同（四套方案都服从）：每一拍只完成一件事——读懂眼前场面 → 做一个有后果的动作 → 看见因果。
+      </div>
+      <div class="legend">
+        <span><i class="dot mine"></i> 橙色：设计意图 / 我建议怎么改</span>
+        <span><i class="dot yours"></i> 蓝色：请你拍板的点</span>
+        <span><i class="dot keep"></i> 绿色：建议保留</span>
+      </div>
+    </header>
+
+    <!-- A: as-is -->
+    <section class="scheme" id="A">
+      <div class="scheme-head">
+        <h2>方案 A · 现状结构（问题示范）</h2>
+        <div class="scheme-meta">
+          <span class="pill">对照基线</span>
+          <span class="pill">多栏平铺</span>
+          <span class="pill">通用动词菜单</span>
+        </div>
+        <p class="scheme-desc">
+          近似你现在玩到的信息结构：仪表 + 场景卡 + 抽象压力 + 通用技能栏 + 后果 + 双栏百科/新闻。
+          不是骂视觉，是标出「注意力为什么散」。
+        </p>
+      </div>
+      <div class="stage-wrap">
+        <div class="mock-frame">
+          <div class="mock" style="min-height: 640px;">
+            <div class="anno mine" style="top: 8px; right: 8px; max-width: 130px;" data-n="A1">
+              顶栏还行，但和下面仪表一起占「第一眼」
+            </div>
+            <div class="a-top">
+              <div><strong>约翰·克劳斯</strong><br />理论物理学生</div>
+              <div style="text-align:right;color:#57534e">14:39 · 第3拍</div>
+            </div>
+            <div class="a-meters">
+              <div>局势紧度<div class="a-bar"><i></i></div></div>
+              <div>被盯上的感觉<div class="a-bar"><i style="width:15%"></i></div></div>
+            </div>
+            <div class="anno mine" style="top: 78px; left: 8px; max-width: 120px;" data-n="A2">
+              两条条未教学就占主视觉 → 增加学习成本
+            </div>
+            <div class="a-card">
+              <div class="loc">柏林 · 大学物理系走廊</div>
+              <p style="margin:6px 0;font-style:italic;color:#57534e;font-size:11px">
+                国会纵火案之后的整肃仍在继续…
+              </p>
+              <p style="margin:0 0 6px">
+                你什么也没做的片刻里，世界自己动了。有人在街角收走了几份刚贴出的通知。
+              </p>
+              <div class="a-pressure">压力：现在介入，还是继续观望。</div>
+              <span class="a-chip">时间（对手）</span>
+            </div>
+            <div class="anno mine" style="top: 250px; right: 6px; max-width: 135px;" data-n="A3">
+              「压力」像系统提示，不像戏内危机
+            </div>
+            <div class="a-actions">
+              <div class="a-btn">开口问一句<small>有代价</small></div>
+              <div class="a-btn">替人传一张纸条<small>有代价</small></div>
+              <div class="a-btn">悄悄记下<small>相对安全</small></div>
+              <div class="a-btn">装作没看见<small>相对安全</small></div>
+            </div>
+            <div class="anno mine" style="bottom: 150px; left: 8px; max-width: 140px;" data-n="A4">
+              动作与场面脱节：问谁？纸条给谁？
+            </div>
+            <div class="a-cons"><strong style="color:#166534;font-size:10px">世界自行推进</strong><br />有人在街角收走了通知…（与正文重复）</div>
+            <div class="a-bottom">
+              <div><strong>你知道的</strong><br />实验室谁还来…</div>
+              <div><strong>世界在动</strong><br />同一句新闻再写一次</div>
+            </div>
+            <div class="anno mine" style="bottom: 12px; right: 8px; max-width: 130px;" data-n="A5">
+              底栏与主决策抢注意力，且信息重复
+            </div>
+          </div>
+        </div>
+        <aside class="notes-panel">
+          <h3>方案 A 批注</h3>
+          <div class="note-item">
+            <strong>A1–A5 · 为什么混</strong>
+            <div class="role">设计诊断</div>
+            等权平铺：系统、叙事、动作、百科同时说话。玩家没有「先看哪里」的合同。
+          </div>
+          <div class="note-item">
+            <strong>内容断裂</strong>
+            <div class="role">玩法</div>
+            发呆后场面切到「通知」，动作仍是实验室通用技能 → 大脑无法建立映射 =「不会玩」。
+          </div>
+          <div class="note-item yours">
+            <strong>你的拍板 · Q1</strong>
+            <div class="role">请你选</div>
+            你是否同意：方案 A 只作反面对照，不作为正式方向？
+          </div>
+          <div class="note-item keep">
+            <strong>可保留的种子</strong>
+            身份名 + 时间一行；「世界会自己动」这个机制本身（呈现方式要改）。
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- B -->
+    <section class="scheme" id="B">
+      <div class="scheme-head">
+        <h2>方案 B · 舞台灯（单栏 · 戏 → 情景动作）</h2>
+        <div class="scheme-meta">
+          <span class="pill rec">推荐默认</span>
+          <span class="pill">注意力最可控</span>
+          <span class="pill">改动成本中</span>
+          <span class="pill">适合文字 Agent</span>
+        </div>
+        <p class="scheme-desc">
+          每一拍只有三层光：主舞台场面 → 2～3 个「写进场面」的动作 → 一行弱后果。
+          仪表 / 百科 / 新闻默认折叠。第一拍可有一行引导，之后消失。
+        </p>
+      </div>
+      <div class="stage-wrap">
+        <div class="mock-frame">
+          <div class="mock">
+            <div class="b-top">
+              <b>约翰·克劳斯</b> · 学生 · 柏林<br />
+              1933-10-17 14:39 · 第 3 拍
+            </div>
+            <div class="anno keep" style="top: 6px; right: 8px;" data-n="B1">
+              身份压缩成一行，不再抢戏
+            </div>
+            <p class="b-guide">读完下面这段，点一个动作。（仅前两拍显示）</p>
+            <div class="anno mine" style="top: 58px; right: 6px; max-width: 120px;" data-n="B2">
+              显式注意力指令，用完即焚
+            </div>
+            <div class="b-stage">
+              <div class="loc">大学物理系 · 走廊 → 望向街角</div>
+              <p class="body">
+                你刚从讲座出来，普朗克的纸条还在袖口。街角有人在撕一张还没干透的通知，浆糊沾在指上。他抬眼扫过走廊——像在数谁看见了。
+              </p>
+              <p class="hook">
+                纸条在烫。通知在消失。你只能先顾一件。
+              </p>
+              <div class="b-who">在场：撕通知的人 · 走廊尽头的记录者（远）</div>
+            </div>
+            <div class="anno mine" style="top: 210px; left: 6px; max-width: 125px;" data-n="B3">
+              主舞台 70% 注意力：具体物件 + 最后一句钩子
+            </div>
+            <div class="b-act-label">你要怎么做</div>
+            <div class="b-actions">
+              <button type="button" class="b-btn">跟上去，看通知被收去哪</button>
+              <button type="button" class="b-btn">先回侧廊，确认纸条还在不在</button>
+              <button type="button" class="b-btn">站着装不在意，看还有谁在看你</button>
+            </div>
+            <div class="anno mine" style="bottom: 120px; right: 6px; max-width: 130px;" data-n="B4">
+              动作带宾语、嵌在场面里；禁止裸「开口问一句」
+            </div>
+            <p class="b-echo">上一拍：你在走廊发呆了片刻。世界没有等你。</p>
+            <div class="b-fold">
+              <span>▸ 你还知道什么</span>
+              <span>▸ 街上的传闻</span>
+              <span>▸ 状态细节</span>
+            </div>
+            <div class="anno keep" style="bottom: 12px; left: 10px;" data-n="B5">
+              次要信息折叠，需要时再打开
+            </div>
+          </div>
+        </div>
+        <aside class="notes-panel">
+          <h3>方案 B 批注</h3>
+          <div class="note-item">
+            <strong>B3 主舞台规则</strong>
+            <div class="role">内容怎么写</div>
+            只写眼前能看见/听见的；钩子必须具体（纸条 + 通知），禁止「介入还是观望」式元问题。
+          </div>
+          <div class="note-item">
+            <strong>B4 动作生成规则</strong>
+            <div class="role">底盘</div>
+            编译器/规则引擎输出的不是技能 ID 文案，而是「对本场面的 2～3 个合法干预」。身份权限仍在底层校验。
+          </div>
+          <div class="note-item yours">
+            <strong>你的拍板 · Q2</strong>
+            <div class="role">请你选</div>
+            每拍动作数量：<strong>2 个</strong>（更果断）还是 <strong>3 个</strong>（稍自由）？
+          </div>
+          <div class="note-item yours">
+            <strong>你的拍板 · Q3</strong>
+            <div class="role">请你选</div>
+            进度条：彻底隐藏，只在后果里用一句话表达？还是折叠进「状态细节」？
+          </div>
+          <div class="note-item keep">
+            <strong>与开放身份兼容</strong>
+            零样本身份冷启动时，优先生成「场面 + 情景动作」，而不是百科列表。
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- C -->
+    <section class="scheme" id="C">
+      <div class="scheme-head">
+        <h2>方案 C · 场景卡 + 物件热区</h2>
+        <div class="scheme-meta">
+          <span class="pill">空间感更强</span>
+          <span class="pill">交互更「可摸」</span>
+          <span class="pill">改动成本高</span>
+          <span class="pill">可与 B 后期融合</span>
+        </div>
+        <p class="scheme-desc">
+          上半是简化场景（走廊/港口窗），可点物件是注意力锚点；点选后下方出现针对该物件的动作。
+          适合以后做体素/空间，但 MVP 可用 2D 热区先验证。
+        </p>
+      </div>
+      <div class="stage-wrap">
+        <div class="mock-frame">
+          <div class="mock">
+            <div class="c-top"><strong>约翰·克劳斯</strong> · 14:39 · 走廊</div>
+            <div class="c-room">
+              <span class="cap">点一个物件</span>
+              <div class="c-hot" style="left: 16px; top: 70px;"><em>可点</em>袖口的纸条</div>
+              <div class="c-hot sel" style="right: 16px; top: 40px;"><em>已选</em>街角的通知</div>
+              <div class="c-hot" style="left: 40%; bottom: 24px;"><em>可点</em>尽头的人影</div>
+              <div class="anno mine" style="bottom: 8px; left: 8px; max-width: 120px;" data-n="C1">
+                注意力先被「物件」吸住，再给动作
+              </div>
+            </div>
+            <p class="c-narr">
+              通知的纸边还湿。撕它的人把碎屑搓掉，朝系馆方向看了一眼。
+            </p>
+            <div class="c-actions">
+              <button type="button" class="c-btn primary">跟着通知的碎片看去向</button>
+              <button type="button" class="c-btn">假装路过，多看一眼内容</button>
+              <button type="button" class="c-btn">退回门内，不当回事</button>
+            </div>
+            <div class="anno mine" style="bottom: 70px; right: 8px; max-width: 125px;" data-n="C2">
+              动作集随「当前选中物件」变化
+            </div>
+            <div class="anno yours" style="top: 48px; left: 8px; max-width: 120px;" data-n="C3">
+              你是否要这种「先点环境」的额外一步？
+            </div>
+          </div>
+        </div>
+        <aside class="notes-panel">
+          <h3>方案 C 批注</h3>
+          <div class="note-item">
+            <strong>优点</strong>
+            天然解决「动作和场面脱节」：动作永远挂在物件上。更接近你说的「要有交互体感」。
+          </div>
+          <div class="note-item">
+            <strong>风险</strong>
+            多一步点击；开放身份时要生成热区列表，底盘更重；美术/占位不好会像简陋点选冒险。
+          </div>
+          <div class="note-item yours">
+            <strong>你的拍板 · Q4</strong>
+            <div class="role">请你选</div>
+            C 作为 <strong>主方向</strong>，还是作为 B 之后的 <strong>增强层</strong>（先文字舞台，再加热区）？
+          </div>
+          <div class="note-item keep">
+            <strong>与 Minecraft/体素的关系</strong>
+            若未来进空间，C 的「物件 = 交互入口」可直接迁到 3D 碰撞体；B 的叙事节奏仍可保留为对话层。
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- D -->
+    <section class="scheme" id="D">
+      <div class="scheme-head">
+        <h2>方案 D · 书页叙事 + 底栏选择</h2>
+        <div class="scheme-meta">
+          <span class="pill">最像读书</span>
+          <span class="pill">改动成本低</span>
+          <span class="pill">空间感弱</span>
+          <span class="pill">易显「点链接小说」</span>
+        </div>
+        <p class="scheme-desc">
+          整页就是一段散文，选择像脚注一样列在段落后。注意力路径极短：往下读 → 点句。
+          适合强文笔；弱在「世界在周围」的体感，开放沙盒感会淡一些。
+        </p>
+      </div>
+      <div class="stage-wrap">
+        <div class="mock-frame">
+          <div class="mock">
+            <div class="d-page">
+              <div class="d-meta">
+                <span>约翰·克劳斯 · 学生</span>
+                <span>1933.10.17 下午</span>
+              </div>
+              <div class="d-body">
+                <p>纸条还热。你把它按在袖口里，指节发白。</p>
+                <p>
+                  街角，一个男人在撕通知。浆糊未干。碎纸像雪，很快被风压进沟里。
+                  他并不慌——慌的是看他的人。
+                </p>
+                <p>走廊尽头有笔尖的声音。有人在记名字。</p>
+              </div>
+              <div class="anno mine" style="top: 120px; right: 8px; max-width: 120px;" data-n="D1">
+                零 chrome：几乎没有 UI 噪音
+              </div>
+              <div class="d-choices">
+                <div class="q">你怎么办？</div>
+                <button type="button" class="d-choice">1. 跟着撕通知的人</button>
+                <button type="button" class="d-choice">2. 先把纸条藏进实验记录本</button>
+                <button type="button" class="d-choice">3. 若无其事走过，听笔尖停不停</button>
+              </div>
+              <div class="anno mine" style="bottom: 40px; left: 12px; max-width: 130px;" data-n="D2">
+                选择即目录，认知负担最低
+              </div>
+            </div>
+          </div>
+        </div>
+        <aside class="notes-panel">
+          <h3>方案 D 批注</h3>
+          <div class="note-item">
+            <strong>何时选 D</strong>
+            你更在意「一晚上读完一段人生」而不是「在空间里搅和」。文笔必须过硬，否则像廉价分支小说。
+          </div>
+          <div class="note-item">
+            <strong>与 AI for fun 沙盒</strong>
+            世界自转、多身份底盘都能做，但玩家感知会偏「章节」而非「活在城里」。要强沙盒，B/C 更贴。
+          </div>
+          <div class="note-item yours">
+            <strong>你的拍板 · Q5</strong>
+            <div class="role">请你选</div>
+            你能否接受主体验「很像书」？还是必须一眼看出「我在场面里操作」？
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- compare -->
+    <section class="compare">
+      <h2>对照表（帮你挑）</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>A 现状</th>
+            <th>B 舞台灯</th>
+            <th>C 热区</th>
+            <th>D 书页</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>会不会玩（首 30 秒）</td>
+            <td>差</td>
+            <td class="rec">好</td>
+            <td>中（多一步）</td>
+            <td>好</td>
+          </tr>
+          <tr>
+            <td>动作与场面是否咬合</td>
+            <td>差</td>
+            <td class="rec">好</td>
+            <td class="rec">最好</td>
+            <td>好</td>
+          </tr>
+          <tr>
+            <td>「在历史里」的空间感</td>
+            <td>弱</td>
+            <td>中</td>
+            <td class="rec">强</td>
+            <td>弱</td>
+          </tr>
+          <tr>
+            <td>开放身份底盘实现难度</td>
+            <td>已有但散</td>
+            <td class="rec">中</td>
+            <td>高</td>
+            <td>低</td>
+          </tr>
+          <tr>
+            <td>避免中二/仪表盘感</td>
+            <td>差</td>
+            <td class="rec">好</td>
+            <td>好</td>
+            <td class="rec">最好</td>
+          </tr>
+          <tr>
+            <td>通向体素/Minecraft 史</td>
+            <td>远</td>
+            <td>可接</td>
+            <td class="rec">最近</td>
+            <td>远</td>
+          </tr>
+          <tr>
+            <td>我的默认推荐</td>
+            <td>淘汰</td>
+            <td class="rec">MVP 下一刀主做</td>
+            <td>B 验证后再加</td>
+            <td>若你要纯叙事再考虑</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="pick">
+      <h2>请你这样挑（回消息即可）</h2>
+      <p>不用写长文，按编号回最省事：</p>
+      <ol>
+        <li><strong>主方案</strong>：B / C / D（或 B+C 分期）</li>
+        <li><strong>Q2</strong> 动作数：2 或 3</li>
+        <li><strong>Q3</strong> 进度条：藏掉 / 折进次级</li>
+        <li><strong>Q4</strong> 热区：主方向 or 增强层 or 不要</li>
+        <li><strong>Q5</strong> 能否接受书页感：是 / 否</li>
+        <li>任意额外批注：例如「后果要更狠」「不要引导文案」…</li>
+      </ol>
+      <p style="margin-top:16px;color:#a8a29e;font-size:13px">
+        你选定后，再改 <code>identity_chassis_mvp</code> 的真实 UI——先改注意力结构，不先加系统。
+      </p>
+    </section>
+
+    <p class="footer-note">
+      文件位置：
+      <code>artifacts/identity_chassis_mvp/design_review.html</code>
+      · 可本地直接打开，无需服务器。
+      可玩 MVP 仍在 http://127.0.0.1:8901/ （若服务在跑）。
+    </p>
+  </div>
+</body>
+</html>
